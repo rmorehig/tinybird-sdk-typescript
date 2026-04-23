@@ -189,6 +189,38 @@ describe("Branch API client", () => {
       );
     });
 
+    it("uses last_partition=1 wire format when option is enabled", async () => {
+      const mockBranch = {
+        id: "branch-123",
+        name: "my-feature",
+        token: "p.branch-token",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          job: { id: "job-123", status: "waiting" },
+          workspace: { id: "ws-123" },
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "job-123", status: "done" }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBranch),
+      });
+
+      await createBranch(config, "my-feature", { lastPartition: true });
+
+      const [createUrl] = mockFetch.mock.calls[0];
+      const createParsed = expectFromParam(createUrl);
+      expect(createParsed.searchParams.get("name")).toBe("my-feature");
+      expect(createParsed.searchParams.get("last_partition")).toBe("1");
+    });
+
     it("uses custom fetch when provided", async () => {
       const customFetch = vi
         .fn()

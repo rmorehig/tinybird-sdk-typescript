@@ -7,8 +7,9 @@ import * as path from "path";
 import { config as loadDotenv } from "dotenv";
 import { getCurrentGitBranch, isMainBranch, getTinybirdBranchName } from "./git.js";
 
-// Re-export types from config-types.ts (separate file to avoid bundling esbuild)
-export type { DevMode, TinybirdConfig } from "./config-types.js";
+// Re-export config types/constants from config-types.ts (separate file to avoid bundling esbuild)
+export { BranchDataOnCreate, type DevMode, type TinybirdConfig } from "./config-types.js";
+import { BranchDataOnCreate } from "./config-types.js";
 import type { DevMode, TinybirdConfig } from "./config-types.js";
 
 /**
@@ -33,6 +34,8 @@ export interface ResolvedConfig {
   isMainBranch: boolean;
   /** Development mode: "branch" or "local" */
   devMode: DevMode;
+  /** Branch data mode configured in tinybird.config.json */
+  branchDataOnCreate?: BranchDataOnCreate | null;
 }
 
 /**
@@ -196,6 +199,21 @@ export function findConfigFile(startDir: string): ConfigFileResult | null {
 // Import the universal config loader
 import { loadConfigFile } from "./config-loader.js";
 
+function resolveBranchDataOnCreate(raw: Record<string, unknown>): BranchDataOnCreate | null {
+  const value = raw["branch_data_on_create"];
+  if (value === undefined || value === null) return BranchDataOnCreate.LAST_PARTITION;
+  if (typeof value !== "string") throw new Error("branch_data_on_create must be a string.");
+  const mode = value.trim().toLowerCase();
+  if (!mode) return BranchDataOnCreate.LAST_PARTITION;
+  if (mode !== BranchDataOnCreate.LAST_PARTITION && mode !== BranchDataOnCreate.ALL_PARTITIONS) {
+    throw new Error(`Invalid branch_data_on_create '${value}'. Allowed values are: last_partition, all_partitions.`);
+  }
+  if (mode === BranchDataOnCreate.ALL_PARTITIONS) {
+    throw new Error("branch_data_on_create 'all_partitions' is currently disabled.");
+  }
+  return mode as BranchDataOnCreate;
+}
+
 /**
  * Resolve a TinybirdConfig to a ResolvedConfig
  */
@@ -255,6 +273,13 @@ function resolveConfig(config: TinybirdConfig, configPath: string): ResolvedConf
 
   // Resolve devMode (default to "branch")
   const devMode: DevMode = config.devMode ?? "branch";
+  const branchDataOnCreate = resolveBranchDataOnCreate(config as unknown as Record<string, unknown>);
+  if (branchDataOnCreate && devMode === "local") {
+    console.warn(
+      "branch_data_on_create is set in tinybird.config.json but dev_mode='local'. " +
+      "Branch data settings only apply to cloud branches."
+    );
+  }
 
   return {
     include,
@@ -266,6 +291,7 @@ function resolveConfig(config: TinybirdConfig, configPath: string): ResolvedConf
     tinybirdBranch,
     isMainBranch: isMainBranch(),
     devMode,
+    branchDataOnCreate,
   };
 }
 

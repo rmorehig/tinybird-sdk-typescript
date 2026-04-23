@@ -167,6 +167,7 @@ describe("TinybirdClient", () => {
         tinybirdBranch: "feature_add_fetch",
         isMainBranch: false,
         devMode: "branch",
+        branchDataOnCreate: null,
       });
       mockedGetOrCreateBranch.mockResolvedValue({
         id: "branch-123",

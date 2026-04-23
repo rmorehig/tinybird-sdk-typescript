@@ -3,6 +3,7 @@
  */
 
 import { loadConfigAsync, LOCAL_BASE_URL, type ResolvedConfig, type DevMode } from "../config.js";
+import { BranchDataOnCreate } from "../config-types.js";
 import { buildFromInclude, type BuildFromIncludeResult } from "../../generator/index.js";
 import { buildToTinybird, type BuildApiResult } from "../../api/build.js";
 import { getOrCreateBranch } from "../../api/branches.js";
@@ -225,13 +226,16 @@ export async function runBuild(options: BuildCommandOptions = {}): Promise<Build
         console.log(`[debug] Getting/creating Tinybird branch: ${config.tinybirdBranch}`);
       }
       try {
+        const lastPartitionFromConfig =
+          config.branchDataOnCreate === BranchDataOnCreate.LAST_PARTITION;
+        const lastPartitionFromFlag = Boolean(options.lastPartition);
         const tinybirdBranch = await getOrCreateBranch(
           {
             baseUrl: config.baseUrl,
             token: config.token,
           },
           config.tinybirdBranch!,
-          { lastPartition: options.lastPartition }
+          { lastPartition: lastPartitionFromFlag || lastPartitionFromConfig }
         );
 
         if (!tinybirdBranch.token) {

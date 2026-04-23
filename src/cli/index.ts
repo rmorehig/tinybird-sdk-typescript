@@ -270,7 +270,10 @@ function createCli(): Command {
     .option("--debug", "Show debug output including API requests/responses")
     .option("--local", "Use local Tinybird container")
     .option("--branch", "Use Tinybird cloud with branches")
-    .option("--last-partition", "Copy the last partition of production data when creating a branch")
+    .option(
+      "--last-partition",
+      '[DEPRECATED] Use `branch_data_on_create: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
+    )
     .action(async (options) => {
       if (options.debug) {
         process.env.TINYBIRD_DEBUG = "1";
@@ -679,7 +682,10 @@ function createCli(): Command {
     .description("Watch for changes and sync with Tinybird")
     .option("--local", "Use local Tinybird container")
     .option("--branch", "Use Tinybird cloud with branches")
-    .option("--last-partition", "Copy the last partition of production data when creating a branch")
+    .option(
+      "--last-partition",
+      '[DEPRECATED] Use `branch_data_on_create: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
+    )
     .action(async (options) => {
       // Determine devMode override
       let devModeOverride: DevMode | undefined;

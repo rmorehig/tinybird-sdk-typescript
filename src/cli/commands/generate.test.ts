@@ -35,6 +35,7 @@ describe("Generate command", () => {
       tinybirdBranch: "feature_x",
       isMainBranch: false,
       devMode: "branch",
+      branchDataOnCreate: null,
     });
 
     vi.mocked(buildFromInclude).mockResolvedValue({
@@ -108,6 +109,7 @@ describe("Generate command", () => {
       tinybirdBranch: "feature_x",
       isMainBranch: false,
       devMode: "branch",
+      branchDataOnCreate: null,
     });
 
     vi.mocked(buildFromInclude).mockResolvedValue({
@@ -167,6 +169,7 @@ describe("Generate command", () => {
       tinybirdBranch: "feature_x",
       isMainBranch: false,
       devMode: "branch",
+      branchDataOnCreate: null,
     });
     vi.mocked(buildFromInclude).mockRejectedValue(
       new Error("generator failed")

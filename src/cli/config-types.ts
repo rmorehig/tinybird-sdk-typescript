@@ -11,6 +11,10 @@
  * - "local": Use local Tinybird container at localhost:7181
  */
 export type DevMode = "branch" | "local";
+export enum BranchDataOnCreate {
+  LAST_PARTITION = "last_partition",
+  ALL_PARTITIONS = "all_partitions",
+}
 
 /**
  * Tinybird configuration file structure
@@ -26,4 +30,6 @@ export interface TinybirdConfig {
   baseUrl?: string;
   /** Development mode: "branch" (default) or "local" */
   devMode?: DevMode;
+  /** Branch data mode applied on cloud branch creation (shared snake_case key) */
+  branch_data_on_create?: BranchDataOnCreate;
 }
