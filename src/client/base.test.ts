@@ -167,7 +167,7 @@ describe("TinybirdClient", () => {
         tinybirdBranch: "feature_add_fetch",
         isMainBranch: false,
         devMode: "branch",
-        branchDataOnCreate: null,
+        branchDataMode: null,
       });
       mockedGetOrCreateBranch.mockResolvedValue({
         id: "branch-123",
@@ -193,7 +193,8 @@ describe("TinybirdClient", () => {
           token: "workspace-token",
           fetch: customFetch,
         },
-        "feature_add_fetch"
+        "feature_add_fetch",
+        undefined
       );
       expect(context.token).toBe("branch-token");
       expect(context.isBranchToken).toBe(true);

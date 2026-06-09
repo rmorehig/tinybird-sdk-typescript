@@ -37,7 +37,7 @@ describe("Deploy command", () => {
       tinybirdBranch: "feature_pro_610",
       isMainBranch: false,
       devMode: "branch",
-      branchDataOnCreate: null,
+      branchDataMode: null,
     });
 
     vi.mocked(buildFromInclude).mockResolvedValue({

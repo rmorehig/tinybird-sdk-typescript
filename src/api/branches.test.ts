@@ -526,7 +526,7 @@ describe("Branch API client", () => {
         json: () => Promise.resolve(newBranch),
       });
 
-      const result = await clearBranch(config, "my-feature");
+      const result = await clearBranch(config, "my-feature", { lastPartition: true });
 
       expect(mockFetch).toHaveBeenCalledTimes(5);
 
@@ -547,6 +547,7 @@ describe("Branch API client", () => {
       const createParsed = expectFromParam(createUrl);
       expect(createParsed.pathname).toBe("/v1/environments");
       expect(createParsed.searchParams.get("name")).toBe("my-feature");
+      expect(createParsed.searchParams.get("last_partition")).toBe("1");
       expect(createInit.method).toBe("POST");
 
       expect(result).toEqual(newBranch);

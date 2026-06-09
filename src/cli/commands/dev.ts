@@ -14,7 +14,7 @@ import {
   type ResolvedConfig,
   type DevMode,
 } from "../config.js";
-import { BranchDataOnCreate } from "../config-types.js";
+import { BranchDataMode } from "../config-types.js";
 import { runBuild, type BuildCommandResult } from "./build.js";
 import { getOrCreateBranch, type TinybirdBranch } from "../../api/branches.js";
 import { browserLogin } from "../auth.js";
@@ -241,7 +241,7 @@ export async function runDev(
     if (config.tinybirdBranch) {
       const branchName = config.tinybirdBranch; // Sanitized name for Tinybird
       const lastPartitionFromConfig =
-        config.branchDataOnCreate === BranchDataOnCreate.LAST_PARTITION;
+        config.branchDataMode === BranchDataMode.LAST_PARTITION;
       const lastPartitionFromFlag = Boolean(options.lastPartition);
 
       // Always fetch fresh from API to avoid stale cache issues

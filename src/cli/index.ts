@@ -272,7 +272,7 @@ function createCli(): Command {
     .option("--branch", "Use Tinybird cloud with branches")
     .option(
       "--last-partition",
-      '[DEPRECATED] Use `branch_data_on_create: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
+      '[DEPRECATED] Use `branch_data_mode: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
     )
     .action(async (options) => {
       if (options.debug) {
@@ -684,7 +684,7 @@ function createCli(): Command {
     .option("--branch", "Use Tinybird cloud with branches")
     .option(
       "--last-partition",
-      '[DEPRECATED] Use `branch_data_on_create: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
+      '[DEPRECATED] Use `branch_data_mode: "last_partition"` in tinybird.config.json. Copy the last partition of production data when creating a cloud branch.'
     )
     .action(async (options) => {
       // Determine devMode override

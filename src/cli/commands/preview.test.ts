@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generatePreviewBranchName, runPreview } from "./preview.js";
-import { BranchDataOnCreate } from "../config-types.js";
+import { BranchDataMode } from "../config-types.js";
 
 vi.mock("../config.js", () => ({
   loadConfigAsync: vi.fn(),
@@ -74,7 +74,7 @@ describe("Preview command", () => {
     });
   });
 
-  describe("branch_data_on_create wiring", () => {
+  describe("branch_data_mode wiring", () => {
     it("uses config-only last_partition when creating cloud preview branch", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");
@@ -91,7 +91,7 @@ describe("Preview command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: BranchDataOnCreate.LAST_PARTITION,
+        branchDataMode: BranchDataMode.LAST_PARTITION,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -121,7 +121,7 @@ describe("Preview command", () => {
       );
     });
 
-    it("ignores config branch_data_on_create in local mode", async () => {
+    it("ignores config branch_data_mode in local mode", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");
       const { createBranch } = await import("../../api/branches.js");
@@ -138,7 +138,7 @@ describe("Preview command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: BranchDataOnCreate.LAST_PARTITION,
+        branchDataMode: BranchDataMode.LAST_PARTITION,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },

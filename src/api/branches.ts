@@ -377,13 +377,14 @@ export async function getOrCreateBranch(
  */
 export async function clearBranch(
   config: BranchApiConfig,
-  name: string
+  name: string,
+  options?: CreateBranchOptions
 ): Promise<TinybirdBranch> {
   // Delete the branch
   await deleteBranch(config, name);
 
   // Recreate the branch
-  const branch = await createBranch(config, name);
+  const branch = await createBranch(config, name, options);
 
   return branch;
 }

@@ -328,11 +328,11 @@ describe("Config", () => {
       expect(result.devMode).toBe("local");
     });
 
-    it("resolves branch_data_on_create as last_partition", () => {
+    it("resolves branch_data_mode as last_partition", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
-        branch_data_on_create: "last_partition",
+        branch_data_mode: "last_partition",
       };
       fs.writeFileSync(
         path.join(tempDir, "tinybird.json"),
@@ -340,10 +340,10 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataOnCreate).toBe("last_partition");
+      expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("defaults branch_data_on_create to last_partition when missing", () => {
+    it("defaults branch_data_mode to last_partition when missing", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -354,14 +354,14 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataOnCreate).toBe("last_partition");
+      expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("defaults empty branch_data_on_create to last_partition", () => {
+    it("defaults empty branch_data_mode to last_partition", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
-        branch_data_on_create: "   ",
+        branch_data_mode: "   ",
       };
       fs.writeFileSync(
         path.join(tempDir, "tinybird.json"),
@@ -369,43 +369,43 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataOnCreate).toBe("last_partition");
+      expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("throws when branch_data_on_create is all_partitions", () => {
+    it("throws when branch_data_mode is all_partitions", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
-        branch_data_on_create: "all_partitions",
+        branch_data_mode: "all_partitions",
       };
       fs.writeFileSync(
         path.join(tempDir, "tinybird.json"),
         JSON.stringify(config)
       );
 
-      expect(() => loadConfig(tempDir)).toThrow("disabled");
+      expect(() => loadConfig(tempDir)).toThrow("Invalid branch_data_mode");
     });
 
-    it("throws when branch_data_on_create is invalid", () => {
+    it("throws when branch_data_mode is invalid", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
-        branch_data_on_create: "invalid",
+        branch_data_mode: "invalid",
       };
       fs.writeFileSync(
         path.join(tempDir, "tinybird.json"),
         JSON.stringify(config)
       );
 
-      expect(() => loadConfig(tempDir)).toThrow("Invalid branch_data_on_create");
+      expect(() => loadConfig(tempDir)).toThrow("Invalid branch_data_mode");
     });
 
-    it("warns when branch_data_on_create is set with devMode local", () => {
+    it("warns when branch_data_mode is set with devMode local", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
         devMode: "local",
-        branch_data_on_create: "last_partition",
+        branch_data_mode: "last_partition",
       };
       fs.writeFileSync(
         path.join(tempDir, "tinybird.json"),
@@ -416,8 +416,39 @@ describe("Config", () => {
       loadConfig(tempDir);
 
       expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("branch_data_on_create is set")
+        expect.stringContaining("branch_data_mode is set")
       );
+    });
+
+    it("does not warn when branch_data_mode is implicit in local mode", () => {
+      const config = {
+        include: ["lib/datasources.ts"],
+        token: "test-token",
+        devMode: "local",
+      };
+      fs.writeFileSync(
+        path.join(tempDir, "tinybird.json"),
+        JSON.stringify(config)
+      );
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      loadConfig(tempDir);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it("throws when legacy branch_data_on_create key is used", () => {
+      const config = {
+        include: ["lib/datasources.ts"],
+        token: "test-token",
+        branch_data_on_create: "last_partition",
+      };
+      fs.writeFileSync(
+        path.join(tempDir, "tinybird.json"),
+        JSON.stringify(config)
+      );
+
+      expect(() => loadConfig(tempDir)).toThrow("renamed to `branch_data_mode`");
     });
   });
 

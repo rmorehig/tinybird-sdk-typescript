@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { runBuild } from "./build.js";
-import { BranchDataOnCreate } from "../config-types.js";
+import { BranchDataMode } from "../config-types.js";
 
 // Mock all dependencies
 vi.mock("../config.js", () => ({
@@ -65,7 +65,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: null,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -158,7 +158,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: null,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -245,7 +245,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: null,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -312,7 +312,7 @@ describe("Build Command", () => {
     });
   });
 
-  describe("branch_data_on_create wiring", () => {
+  describe("branch_data_mode wiring", () => {
     it("uses config-only last_partition when flag is absent", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");
@@ -331,7 +331,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: BranchDataOnCreate.LAST_PARTITION,
+        branchDataMode: BranchDataMode.LAST_PARTITION,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -388,7 +388,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: null,
+        branchDataMode: null,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -427,7 +427,7 @@ describe("Build Command", () => {
       );
     });
 
-    it("ignores config branch_data_on_create in local mode", async () => {
+    it("ignores config branch_data_mode in local mode", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");
       const { getOrCreateBranch } = await import("../../api/branches.js");
@@ -446,7 +446,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataOnCreate: BranchDataOnCreate.LAST_PARTITION,
+        branchDataMode: BranchDataMode.LAST_PARTITION,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
