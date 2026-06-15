@@ -39,6 +39,8 @@ const DATASOURCE_DIRECTIVES = new Set([
   "IMPORT_BUCKET_URI",
   "IMPORT_SCHEDULE",
   "IMPORT_FROM_TIMESTAMP",
+  "IMPORT_TABLE_ARN",
+  "IMPORT_EXPORT_BUCKET",
   "TOKEN",
 ]);
 
@@ -321,6 +323,8 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
   let importBucketUri: string | undefined;
   let importSchedule: string | undefined;
   let importFromTimestamp: string | undefined;
+  let importTableArn: string | undefined;
+  let importExportBucket: string | undefined;
 
   let i = 0;
   while (i < lines.length) {
@@ -498,6 +502,12 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
       case "IMPORT_FROM_TIMESTAMP":
         importFromTimestamp = parseQuotedValue(value);
         break;
+      case "IMPORT_TABLE_ARN":
+        importTableArn = parseQuotedValue(value);
+        break;
+      case "IMPORT_EXPORT_BUCKET":
+        importExportBucket = parseQuotedValue(value);
+        break;
       case "TOKEN":
         tokens.push(parseToken(resource.filePath, resource.name, value));
         break;
@@ -573,8 +583,30 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
     );
   }
 
+  // DynamoDB import directives share IMPORT_CONNECTION_NAME with blob storage,
+  // so treat the import block as DynamoDB whenever a DynamoDB-only directive is present.
+  const isDynamoDB = importTableArn !== undefined || importExportBucket !== undefined;
+
+  const dynamodb = isDynamoDB
+    ? {
+        connectionName: importConnectionName ?? "",
+        tableArn: importTableArn ?? "",
+        exportBucket: importExportBucket ?? "",
+      }
+    : undefined;
+
+  if (dynamodb && (!dynamodb.connectionName || !dynamodb.tableArn || !dynamodb.exportBucket)) {
+    throw new MigrationParseError(
+      resource.filePath,
+      "datasource",
+      resource.name,
+      "IMPORT_CONNECTION_NAME, IMPORT_TABLE_ARN and IMPORT_EXPORT_BUCKET are required when DynamoDB directives are used."
+    );
+  }
+
   const s3 =
-    importConnectionName || importBucketUri || importSchedule || importFromTimestamp
+    !isDynamoDB &&
+    (importConnectionName || importBucketUri || importSchedule || importFromTimestamp)
       ? {
           connectionName: importConnectionName ?? "",
           bucketUri: importBucketUri ?? "",
@@ -592,7 +624,7 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
     );
   }
 
-  if (kafka && s3) {
+  if (kafka && (s3 || dynamodb)) {
     throw new MigrationParseError(
       resource.filePath,
       "datasource",
@@ -625,6 +657,7 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
     indexes,
     kafka,
     s3,
+    dynamodb,
     forwardQuery,
     tokens,
     sharedWith,

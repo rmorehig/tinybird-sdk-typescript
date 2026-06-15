@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateDatasource, generateAllDatasources } from './datasource.js';
 import { defineDatasource } from '../schema/datasource.js';
-import { defineKafkaConnection, defineS3Connection, defineGCSConnection } from '../schema/connection.js';
+import { defineKafkaConnection, defineS3Connection, defineGCSConnection, defineDynamoDBConnection } from '../schema/connection.js';
 import { defineToken } from '../schema/token.js';
 import { t } from '../schema/types.js';
 import { engine } from '../schema/engines.js';
@@ -626,6 +626,59 @@ describe('Datasource Generator', () => {
       expect(result.content).toContain('IMPORT_BUCKET_URI gs://my-bucket/events/*.csv');
       expect(result.content).toContain('IMPORT_SCHEDULE @auto');
       expect(result.content).toContain('IMPORT_FROM_TIMESTAMP 2024-01-01T00:00:00Z');
+    });
+  });
+
+  describe('DynamoDB configuration', () => {
+    it('includes DynamoDB import directives', () => {
+      const dynamoConn = defineDynamoDBConnection('my_dynamo', {
+        region: 'us-east-1',
+        arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+      });
+
+      const ds = defineDatasource('dynamo_events', {
+        schema: {
+          id: t.string(),
+          _record: t.string(),
+        },
+        engine: engine.replacingMergeTree({ sortingKey: ['id'] }),
+        dynamodb: {
+          connection: dynamoConn,
+          tableArn: 'arn:aws:dynamodb:us-east-1:123456789012:table/events',
+          exportBucket: 's3://my-export-bucket',
+        },
+      });
+
+      const result = generateDatasource(ds);
+
+      expect(result.content).toContain('IMPORT_CONNECTION_NAME my_dynamo');
+      expect(result.content).toContain(
+        'IMPORT_TABLE_ARN arn:aws:dynamodb:us-east-1:123456789012:table/events'
+      );
+      expect(result.content).toContain('IMPORT_EXPORT_BUCKET s3://my-export-bucket');
+    });
+
+    it('rejects mixing DynamoDB with other ingestion options', () => {
+      const dynamoConn = defineDynamoDBConnection('my_dynamo', {
+        region: 'us-east-1',
+        arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+      });
+      const s3Conn = defineS3Connection('my_s3', {
+        region: 'us-east-1',
+        arn: 'arn:aws:iam::123456789012:role/x',
+      });
+
+      expect(() =>
+        defineDatasource('mixed', {
+          schema: { id: t.string() },
+          dynamodb: {
+            connection: dynamoConn,
+            tableArn: 'arn:aws:dynamodb:us-east-1:123456789012:table/events',
+            exportBucket: 's3://my-export-bucket',
+          },
+          s3: { connection: s3Conn, bucketUri: 's3://b/*.csv' },
+        })
+      ).toThrow('only define one ingestion option');
     });
   });
 

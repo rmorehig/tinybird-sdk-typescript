@@ -122,4 +122,45 @@ KAFKA_SASL_OAUTHBEARER_AWS_EXTERNAL_ID {{ tb_secret("KAFKA_AWS_EXTERNAL_ID") }}`
       '{{ tb_secret("KAFKA_AWS_EXTERNAL_ID") }}'
     );
   });
+
+  it("parses basic DynamoDB connection", () => {
+    const result = parseConnectionFile(
+      resource(
+        "my_dynamo",
+        `TYPE dynamodb
+DYNAMODB_ARN {{ tb_secret("DYNAMODB_ROLE_ARN") }}
+DYNAMODB_REGION us-east-1`
+      )
+    );
+
+    expect(result.connectionType).toBe("dynamodb");
+    expect(result).toHaveProperty("arn", '{{ tb_secret("DYNAMODB_ROLE_ARN") }}');
+    expect(result).toHaveProperty("region", "us-east-1");
+  });
+
+  it("throws when DynamoDB connection is missing DYNAMODB_ARN", () => {
+    expect(() =>
+      parseConnectionFile(
+        resource(
+          "my_dynamo",
+          `TYPE dynamodb
+DYNAMODB_REGION us-east-1`
+        )
+      )
+    ).toThrow("DYNAMODB_ARN is required");
+  });
+
+  it("throws when DynamoDB connection mixes S3 directives", () => {
+    expect(() =>
+      parseConnectionFile(
+        resource(
+          "my_dynamo",
+          `TYPE dynamodb
+DYNAMODB_ARN {{ tb_secret("DYNAMODB_ROLE_ARN") }}
+DYNAMODB_REGION us-east-1
+S3_ARN arn:aws:iam::1:role/x`
+        )
+      )
+    ).toThrow("Kafka/S3/GCS directives are not valid for dynamodb connections.");
+  });
 });

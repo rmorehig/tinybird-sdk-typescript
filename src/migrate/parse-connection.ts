@@ -1,4 +1,5 @@
 import type {
+  DynamoDBConnectionModel,
   GCSConnectionModel,
   KafkaConnectionModel,
   ResourceFile,
@@ -31,6 +32,8 @@ const CONNECTION_DIRECTIVES = new Set([
   "S3_ACCESS_KEY",
   "S3_SECRET",
   "GCS_SERVICE_ACCOUNT_CREDENTIALS_JSON",
+  "DYNAMODB_ARN",
+  "DYNAMODB_REGION",
 ]);
 
 function isConnectionDirectiveLine(line: string): boolean {
@@ -43,7 +46,7 @@ function isConnectionDirectiveLine(line: string): boolean {
 
 export function parseConnectionFile(
   resource: ResourceFile
-): KafkaConnectionModel | S3ConnectionModel | GCSConnectionModel {
+): KafkaConnectionModel | S3ConnectionModel | GCSConnectionModel | DynamoDBConnectionModel {
   const lines = splitLines(resource.content);
   let connectionType: string | undefined;
 
@@ -73,6 +76,9 @@ export function parseConnectionFile(
   let accessKey: string | undefined;
   let accessSecret: string | undefined;
   let serviceAccountCredentialsJson: string | undefined;
+
+  let dynamodbArn: string | undefined;
+  let dynamodbRegion: string | undefined;
 
   let i = 0;
   while (i < lines.length) {
@@ -177,6 +183,12 @@ export function parseConnectionFile(
         }
         serviceAccountCredentialsJson = parseQuotedValue(value);
         break;
+      case "DYNAMODB_ARN":
+        dynamodbArn = parseQuotedValue(value);
+        break;
+      case "DYNAMODB_REGION":
+        dynamodbRegion = parseQuotedValue(value);
+        break;
       default:
         throw new MigrationParseError(
           resource.filePath,
@@ -198,12 +210,20 @@ export function parseConnectionFile(
   }
 
   if (connectionType === "kafka") {
-    if (region || arn || accessKey || accessSecret || serviceAccountCredentialsJson) {
+    if (
+      region ||
+      arn ||
+      accessKey ||
+      accessSecret ||
+      serviceAccountCredentialsJson ||
+      dynamodbArn ||
+      dynamodbRegion
+    ) {
       throw new MigrationParseError(
         resource.filePath,
         "connection",
         resource.name,
-        "S3/GCS directives are not valid for kafka connections."
+        "S3/GCS/DynamoDB directives are not valid for kafka connections."
       );
     }
 
@@ -248,13 +268,15 @@ export function parseConnectionFile(
       secret ||
       schemaRegistryUrl ||
       sslCaPem ||
-      serviceAccountCredentialsJson
+      serviceAccountCredentialsJson ||
+      dynamodbArn ||
+      dynamodbRegion
     ) {
       throw new MigrationParseError(
         resource.filePath,
         "connection",
         resource.name,
-        "Kafka/GCS directives are not valid for s3 connections."
+        "Kafka/GCS/DynamoDB directives are not valid for s3 connections."
       );
     }
 
@@ -313,13 +335,15 @@ export function parseConnectionFile(
       region ||
       arn ||
       accessKey ||
-      accessSecret
+      accessSecret ||
+      dynamodbArn ||
+      dynamodbRegion
     ) {
       throw new MigrationParseError(
         resource.filePath,
         "connection",
         resource.name,
-        "Kafka/S3 directives are not valid for gcs connections."
+        "Kafka/S3/DynamoDB directives are not valid for gcs connections."
       );
     }
 
@@ -338,6 +362,61 @@ export function parseConnectionFile(
       filePath: resource.filePath,
       connectionType: "gcs",
       serviceAccountCredentialsJson,
+    };
+  }
+
+  if (connectionType === "dynamodb") {
+    if (
+      bootstrapServers ||
+      securityProtocol ||
+      saslMechanism ||
+      saslOauthbearerMethod ||
+      saslOauthbearerAwsRegion ||
+      saslOauthbearerAwsRoleArn ||
+      saslOauthbearerAwsExternalId ||
+      key ||
+      secret ||
+      schemaRegistryUrl ||
+      sslCaPem ||
+      region ||
+      arn ||
+      accessKey ||
+      accessSecret ||
+      serviceAccountCredentialsJson
+    ) {
+      throw new MigrationParseError(
+        resource.filePath,
+        "connection",
+        resource.name,
+        "Kafka/S3/GCS directives are not valid for dynamodb connections."
+      );
+    }
+
+    if (!dynamodbArn) {
+      throw new MigrationParseError(
+        resource.filePath,
+        "connection",
+        resource.name,
+        "DYNAMODB_ARN is required for dynamodb connections."
+      );
+    }
+
+    if (!dynamodbRegion) {
+      throw new MigrationParseError(
+        resource.filePath,
+        "connection",
+        resource.name,
+        "DYNAMODB_REGION is required for dynamodb connections."
+      );
+    }
+
+    return {
+      kind: "connection",
+      name: resource.name,
+      filePath: resource.filePath,
+      connectionType: "dynamodb",
+      arn: dynamodbArn,
+      region: dynamodbRegion,
     };
   }
 

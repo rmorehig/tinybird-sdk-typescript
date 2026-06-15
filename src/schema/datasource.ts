@@ -9,6 +9,7 @@ import type {
   KafkaConnectionDefinition,
   S3ConnectionDefinition,
   GCSConnectionDefinition,
+  DynamoDBConnectionDefinition,
 } from "./connection.js";
 import type { TokenDefinition, DatasourceTokenScope } from "./token.js";
 
@@ -103,6 +104,18 @@ export interface GCSConfig {
 }
 
 /**
+ * DynamoDB import configuration for a datasource
+ */
+export interface DynamoDBConfig {
+  /** DynamoDB connection to use */
+  connection: DynamoDBConnectionDefinition;
+  /** Source DynamoDB table ARN */
+  tableArn: string;
+  /** S3 bucket Tinybird uses to stage the initial table export */
+  exportBucket: string;
+}
+
+/**
  * Datasource index configuration.
  * Emits as: `<name> <expr> TYPE <type> GRANULARITY <n>`
  */
@@ -152,6 +165,8 @@ export interface DatasourceOptions<TSchema extends SchemaDefinition> {
   s3?: S3Config;
   /** GCS ingestion configuration */
   gcs?: GCSConfig;
+  /** DynamoDB ingestion configuration */
+  dynamodb?: DynamoDBConfig;
 }
 
 /**
@@ -209,9 +224,13 @@ export function defineDatasource<TSchema extends SchemaDefinition>(
     );
   }
 
-  const ingestionConfigCount = [options.kafka, options.s3, options.gcs].filter(Boolean).length;
+  const ingestionConfigCount = [options.kafka, options.s3, options.gcs, options.dynamodb].filter(
+    Boolean
+  ).length;
   if (ingestionConfigCount > 1) {
-    throw new Error("Datasource can only define one ingestion option: `kafka`, `s3`, or `gcs`.");
+    throw new Error(
+      "Datasource can only define one ingestion option: `kafka`, `s3`, `gcs`, or `dynamodb`."
+    );
   }
 
   if (options.indexes) {

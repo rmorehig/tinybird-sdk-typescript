@@ -59,6 +59,12 @@ export interface DatasourceGCSModel {
   fromTimestamp?: string;
 }
 
+export interface DatasourceDynamoDBModel {
+  connectionName: string;
+  tableArn: string;
+  exportBucket: string;
+}
+
 export interface DatasourceTokenModel {
   name: string;
   scope: "READ" | "APPEND";
@@ -82,6 +88,7 @@ export interface DatasourceModel {
   kafka?: DatasourceKafkaModel;
   s3?: DatasourceS3Model;
   gcs?: DatasourceGCSModel;
+  dynamodb?: DatasourceDynamoDBModel;
   forwardQuery?: string;
   tokens: DatasourceTokenModel[];
   sharedWith: string[];
@@ -184,12 +191,22 @@ export interface GCSConnectionModel {
   serviceAccountCredentialsJson: string;
 }
 
+export interface DynamoDBConnectionModel {
+  kind: "connection";
+  name: string;
+  filePath: string;
+  connectionType: "dynamodb";
+  region: string;
+  arn: string;
+}
+
 export type ParsedResource =
   | DatasourceModel
   | PipeModel
   | KafkaConnectionModel
   | S3ConnectionModel
-  | GCSConnectionModel;
+  | GCSConnectionModel
+  | DynamoDBConnectionModel;
 
 export interface MigrationResult {
   success: boolean;

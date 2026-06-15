@@ -3,10 +3,12 @@ import {
   defineKafkaConnection,
   defineS3Connection,
   defineGCSConnection,
+  defineDynamoDBConnection,
   isConnectionDefinition,
   isKafkaConnectionDefinition,
   isS3ConnectionDefinition,
   isGCSConnectionDefinition,
+  isDynamoDBConnectionDefinition,
   getConnectionType,
 } from "./connection.js";
 
@@ -199,6 +201,48 @@ describe("Connection Schema", () => {
     });
   });
 
+  describe("defineDynamoDBConnection", () => {
+    it("creates a DynamoDB connection with required fields", () => {
+      const conn = defineDynamoDBConnection("my_dynamo", {
+        region: "us-east-1",
+        arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+      });
+
+      expect(conn._name).toBe("my_dynamo");
+      expect(conn._type).toBe("connection");
+      expect(conn._connectionType).toBe("dynamodb");
+      expect(conn.options.region).toBe("us-east-1");
+      expect(conn.options.arn).toBe('{{ tb_secret("DYNAMODB_ROLE_ARN") }}');
+    });
+
+    it("throws when region is missing", () => {
+      expect(() =>
+        defineDynamoDBConnection("my_dynamo", {
+          region: "   ",
+          arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+        })
+      ).toThrow("DynamoDB connection `region` is required.");
+    });
+
+    it("throws when arn is missing", () => {
+      expect(() =>
+        defineDynamoDBConnection("my_dynamo", {
+          region: "us-east-1",
+          arn: "",
+        })
+      ).toThrow("DynamoDB connection `arn` is required.");
+    });
+
+    it("throws for invalid connection name", () => {
+      expect(() =>
+        defineDynamoDBConnection("123-invalid", {
+          region: "us-east-1",
+          arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+        })
+      ).toThrow("Invalid connection name");
+    });
+  });
+
   describe("isConnectionDefinition", () => {
     it("returns true for valid connection", () => {
       const conn = defineKafkaConnection("my_kafka", {
@@ -261,6 +305,27 @@ describe("Connection Schema", () => {
     it("returns false for non-GCS objects", () => {
       expect(isGCSConnectionDefinition({})).toBe(false);
       expect(isGCSConnectionDefinition(null)).toBe(false);
+    });
+  });
+
+  describe("isDynamoDBConnectionDefinition", () => {
+    it("returns true for DynamoDB connection", () => {
+      const conn = defineDynamoDBConnection("my_dynamo", {
+        region: "us-east-1",
+        arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+      });
+
+      expect(isDynamoDBConnectionDefinition(conn)).toBe(true);
+    });
+
+    it("returns false for non-DynamoDB objects", () => {
+      expect(isDynamoDBConnectionDefinition({})).toBe(false);
+      expect(isDynamoDBConnectionDefinition(null)).toBe(false);
+      expect(
+        isDynamoDBConnectionDefinition(
+          defineS3Connection("my_s3", { region: "us-east-1", arn: "arn:aws:iam::1:role/x" })
+        )
+      ).toBe(false);
     });
   });
 

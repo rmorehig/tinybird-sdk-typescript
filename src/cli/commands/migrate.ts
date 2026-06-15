@@ -135,7 +135,8 @@ export async function runMigrate(
     const referencedConnectionName =
       datasource.kafka?.connectionName ??
       datasource.s3?.connectionName ??
-      datasource.gcs?.connectionName;
+      datasource.gcs?.connectionName ??
+      datasource.dynamodb?.connectionName;
 
     if (
       referencedConnectionName &&
@@ -183,6 +184,21 @@ export async function runMigrate(
       } else {
         datasource.s3 = { ...importConfig };
         datasource.gcs = undefined;
+      }
+    }
+
+    if (datasource.dynamodb) {
+      const dynamodbConnectionType = parsedConnectionTypeByName.get(
+        datasource.dynamodb.connectionName
+      );
+      if (dynamodbConnectionType !== "dynamodb") {
+        errors.push({
+          filePath: datasource.filePath,
+          resourceName: datasource.name,
+          resourceKind: datasource.kind,
+          message: `Datasource DynamoDB ingestion requires a dynamodb connection, found "${dynamodbConnectionType ?? "(none)"}".`,
+        });
+        continue;
       }
     }
 

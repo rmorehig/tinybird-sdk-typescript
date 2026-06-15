@@ -7,10 +7,12 @@ import type {
   ConnectionDefinition,
   KafkaConnectionDefinition,
   GCSConnectionDefinition,
+  DynamoDBConnectionDefinition,
 } from "../schema/connection.js";
 import {
   isS3ConnectionDefinition,
   isGCSConnectionDefinition,
+  isDynamoDBConnectionDefinition,
   type S3ConnectionDefinition,
 } from "../schema/connection.js";
 
@@ -124,6 +126,20 @@ function generateGCSConnection(connection: GCSConnectionDefinition): string {
 }
 
 /**
+ * Generate a DynamoDB connection content
+ */
+function generateDynamoDBConnection(connection: DynamoDBConnectionDefinition): string {
+  const parts: string[] = [];
+  const options = connection.options;
+
+  parts.push("TYPE dynamodb");
+  parts.push(`DYNAMODB_ARN ${options.arn}`);
+  parts.push(`DYNAMODB_REGION ${options.region}`);
+
+  return parts.join("\n");
+}
+
+/**
  * Generate a .connection file content from a ConnectionDefinition
  *
  * @param connection - The connection definition
@@ -160,6 +176,8 @@ export function generateConnection(
     content = generateS3Connection(connection);
   } else if (isGCSConnectionDefinition(connection)) {
     content = generateGCSConnection(connection);
+  } else if (isDynamoDBConnectionDefinition(connection)) {
+    content = generateDynamoDBConnection(connection);
   } else {
     throw new Error("Unsupported connection type.");
   }

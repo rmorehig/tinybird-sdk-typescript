@@ -4,6 +4,7 @@ import {
   defineKafkaConnection,
   defineS3Connection,
   defineGCSConnection,
+  defineDynamoDBConnection,
 } from "../schema/connection.js";
 
 describe("Connection Generator", () => {
@@ -216,6 +217,22 @@ describe("Connection Generator", () => {
       expect(result.content).toContain("TYPE gcs");
       expect(result.content).toContain(
         'GCS_SERVICE_ACCOUNT_CREDENTIALS_JSON {{ tb_secret("GCS_SERVICE_ACCOUNT_CREDENTIALS_JSON") }}'
+      );
+    });
+
+    it("generates DynamoDB connection with arn and region", () => {
+      const conn = defineDynamoDBConnection("my_dynamo", {
+        region: "us-east-1",
+        arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+      });
+
+      const result = generateConnection(conn);
+
+      expect(result.name).toBe("my_dynamo");
+      expect(result.content).toBe(
+        ['TYPE dynamodb', 'DYNAMODB_ARN {{ tb_secret("DYNAMODB_ROLE_ARN") }}', "DYNAMODB_REGION us-east-1"].join(
+          "\n"
+        )
       );
     });
   });

@@ -716,6 +716,101 @@ IMPORT_SCHEDULE '@on-demand'
     expect(output).toContain('schedule: "@on-demand"');
   });
 
+  it("migrates dynamodb connection and import datasource directives", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tinybird-migrate-"));
+    tempDirs.push(tempDir);
+
+    writeFile(
+      tempDir,
+      "dynamo_sample.connection",
+      `TYPE dynamodb
+DYNAMODB_ARN {{ tb_secret("DYNAMODB_ROLE_ARN") }}
+DYNAMODB_REGION us-east-1
+`
+    );
+
+    writeFile(
+      tempDir,
+      "events_dynamo.datasource",
+      `SCHEMA >
+    id String \`json:$.Id\`,
+    _record String \`json:$.NewImage\`
+
+ENGINE "ReplacingMergeTree"
+ENGINE_SORTING_KEY "id"
+IMPORT_CONNECTION_NAME dynamo_sample
+IMPORT_TABLE_ARN arn:aws:dynamodb:us-east-1:123456789012:table/events
+IMPORT_EXPORT_BUCKET s3://my-export-bucket
+`
+    );
+
+    const result = await runMigrate({
+      cwd: tempDir,
+      patterns: ["."],
+      strict: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.migrated.filter((resource) => resource.kind === "connection")).toHaveLength(1);
+    expect(result.migrated.filter((resource) => resource.kind === "datasource")).toHaveLength(1);
+
+    const output = fs.readFileSync(result.outputPath, "utf-8");
+    expect(output).toContain("defineDynamoDBConnection");
+    expect(output).toContain('export const dynamoSample = defineDynamoDBConnection("dynamo_sample", {');
+    expect(output).toContain('region: "us-east-1"');
+    expect(output).toContain('arn: secret("DYNAMODB_ROLE_ARN")');
+    expect(output).toContain("dynamodb: {");
+    expect(output).toContain("connection: dynamoSample");
+    expect(output).toContain(
+      'tableArn: "arn:aws:dynamodb:us-east-1:123456789012:table/events"'
+    );
+    expect(output).toContain('exportBucket: "s3://my-export-bucket"');
+  });
+
+  it("reports an error when DynamoDB directives use a non-dynamodb connection type", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tinybird-migrate-"));
+    tempDirs.push(tempDir);
+
+    writeFile(
+      tempDir,
+      "s3sample.connection",
+      `TYPE s3
+S3_REGION us-east-1
+S3_ARN "arn:aws:iam::123456789012:role/tinybird-s3-access"
+`
+    );
+
+    writeFile(
+      tempDir,
+      "events_dynamo.datasource",
+      `SCHEMA >
+    id String
+
+ENGINE "ReplacingMergeTree"
+ENGINE_SORTING_KEY "id"
+IMPORT_CONNECTION_NAME s3sample
+IMPORT_TABLE_ARN arn:aws:dynamodb:us-east-1:123456789012:table/events
+IMPORT_EXPORT_BUCKET s3://my-export-bucket
+`
+    );
+
+    const result = await runMigrate({
+      cwd: tempDir,
+      patterns: ["."],
+      strict: true,
+    });
+
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some((error) =>
+        error.message.includes(
+          'Datasource DynamoDB ingestion requires a dynamodb connection, found "s3".'
+        )
+      )
+    ).toBe(true);
+  });
+
   it("reports an error when import directives use a non-bucket connection type", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tinybird-migrate-"));
     tempDirs.push(tempDir);

@@ -4,6 +4,7 @@ import { parseLiteralFromDatafile, toTsLiteral } from "./parser-utils.js";
 import type {
   DatasourceModel,
   DatasourceEngineModel,
+  DynamoDBConnectionModel,
   GCSConnectionModel,
   KafkaConnectionModel,
   ParsedResource,
@@ -72,6 +73,9 @@ function hasSecretTemplate(resources: ParsedResource[]): boolean {
         if (resource.arn) values.push(resource.arn);
         if (resource.accessKey) values.push(resource.accessKey);
         if (resource.secret) values.push(resource.secret);
+      } else if (resource.connectionType === "dynamodb") {
+        values.push(resource.region);
+        values.push(resource.arn);
       } else {
         values.push(resource.serviceAccountCredentialsJson);
       }
@@ -94,6 +98,10 @@ function hasSecretTemplate(resources: ParsedResource[]): boolean {
         values.push(resource.gcs.bucketUri);
         if (resource.gcs.schedule) values.push(resource.gcs.schedule);
         if (resource.gcs.fromTimestamp) values.push(resource.gcs.fromTimestamp);
+      }
+      if (resource.dynamodb) {
+        values.push(resource.dynamodb.tableArn);
+        values.push(resource.dynamodb.exportBucket);
       }
       continue;
     }
@@ -388,6 +396,15 @@ function emitDatasource(ds: DatasourceModel): string {
     lines.push("  },");
   }
 
+  if (ds.dynamodb) {
+    const connectionVar = toCamelCase(ds.dynamodb.connectionName);
+    lines.push("  dynamodb: {");
+    lines.push(`    connection: ${connectionVar},`);
+    lines.push(`    tableArn: ${emitStringOrSecret(ds.dynamodb.tableArn)},`);
+    lines.push(`    exportBucket: ${emitStringOrSecret(ds.dynamodb.exportBucket)},`);
+    lines.push("  },");
+  }
+
   if (ds.forwardQuery) {
     lines.push("  forwardQuery: `");
     lines.push(escapeTemplateLiteral(ds.forwardQuery));
@@ -416,7 +433,11 @@ function emitDatasource(ds: DatasourceModel): string {
 }
 
 function emitConnection(
-  connection: KafkaConnectionModel | S3ConnectionModel | GCSConnectionModel
+  connection:
+    | KafkaConnectionModel
+    | S3ConnectionModel
+    | GCSConnectionModel
+    | DynamoDBConnectionModel
 ): string {
   const variableName = toCamelCase(connection.name);
   const lines: string[] = [];
@@ -481,6 +502,17 @@ function emitConnection(
     if (connection.secret) {
       lines.push(`  secret: ${emitStringOrSecret(connection.secret)},`);
     }
+    lines.push("});");
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  if (connection.connectionType === "dynamodb") {
+    lines.push(
+      `export const ${variableName} = defineDynamoDBConnection(${escapeString(connection.name)}, {`
+    );
+    lines.push(`  region: ${emitStringOrSecret(connection.region)},`);
+    lines.push(`  arn: ${emitStringOrSecret(connection.arn)},`);
     lines.push("});");
     lines.push("");
     return lines.join("\n");
@@ -625,8 +657,13 @@ function emitPipe(pipe: PipeModel): string {
 
 export function emitMigrationFileContent(resources: ParsedResource[]): string {
   const connections = resources.filter(
-    (resource): resource is KafkaConnectionModel | S3ConnectionModel | GCSConnectionModel =>
-      resource.kind === "connection"
+    (
+      resource
+    ): resource is
+      | KafkaConnectionModel
+      | S3ConnectionModel
+      | GCSConnectionModel
+      | DynamoDBConnectionModel => resource.kind === "connection"
   );
   const datasources = resources.filter(
     (resource): resource is DatasourceModel => resource.kind === "datasource"
@@ -655,6 +692,9 @@ export function emitMigrationFileContent(resources: ParsedResource[]): string {
   if (connections.some((connection) => connection.connectionType === "gcs")) {
     imports.add("defineGCSConnection");
   }
+  if (connections.some((connection) => connection.connectionType === "dynamodb")) {
+    imports.add("defineDynamoDBConnection");
+  }
   if (needsParams) {
     imports.add("p");
   }
@@ -672,6 +712,7 @@ export function emitMigrationFileContent(resources: ParsedResource[]): string {
     "defineKafkaConnection",
     "defineS3Connection",
     "defineGCSConnection",
+    "defineDynamoDBConnection",
     "defineDatasource",
     "definePipe",
     "defineMaterializedView",

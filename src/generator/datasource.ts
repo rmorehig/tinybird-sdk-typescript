@@ -10,6 +10,7 @@ import type {
   KafkaConfig,
   S3Config,
   GCSConfig,
+  DynamoDBConfig,
   TokenConfig,
   DatasourceIndex,
 } from "../schema/datasource.js";
@@ -200,6 +201,19 @@ function generateImportConfig(importConfig: S3Config | GCSConfig): string {
 }
 
 /**
+ * Generate DynamoDB import configuration lines
+ */
+function generateDynamoDBConfig(dynamodb: DynamoDBConfig): string {
+  const parts: string[] = [];
+
+  parts.push(`IMPORT_CONNECTION_NAME ${dynamodb.connection._name}`);
+  parts.push(`IMPORT_TABLE_ARN ${dynamodb.tableArn}`);
+  parts.push(`IMPORT_EXPORT_BUCKET ${dynamodb.exportBucket}`);
+
+  return parts.join("\n");
+}
+
+/**
  * Generate forward query section
  */
 function generateForwardQuery(forwardQuery?: string): string | null {
@@ -318,9 +332,12 @@ export function generateDatasource(
     datasource.options.kafka,
     datasource.options.s3,
     datasource.options.gcs,
+    datasource.options.dynamodb,
   ].filter(Boolean).length;
   if (ingestionConfigCount > 1) {
-    throw new Error("Datasource can only define one ingestion option: `kafka`, `s3`, or `gcs`.");
+    throw new Error(
+      "Datasource can only define one ingestion option: `kafka`, `s3`, `gcs`, or `dynamodb`."
+    );
   }
 
   // Add description if present
@@ -367,6 +384,12 @@ export function generateDatasource(
   if (datasource.options.gcs) {
     parts.push("");
     parts.push(generateImportConfig(datasource.options.gcs));
+  }
+
+  // Add DynamoDB configuration if present
+  if (datasource.options.dynamodb) {
+    parts.push("");
+    parts.push(generateDynamoDBConfig(datasource.options.dynamodb));
   }
 
   // Add forward query if present

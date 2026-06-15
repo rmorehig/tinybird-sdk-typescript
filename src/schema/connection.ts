@@ -118,12 +118,38 @@ export interface GCSConnectionDefinition {
 }
 
 /**
+ * Options for defining a DynamoDB connection
+ */
+export interface DynamoDBConnectionOptions {
+  /** DynamoDB table region (for example: us-east-1) */
+  region: string;
+  /** IAM role ARN used by Tinybird to access the table - can use {{ tb_secret(...) }} */
+  arn: string;
+}
+
+/**
+ * DynamoDB-specific connection definition
+ */
+export interface DynamoDBConnectionDefinition {
+  readonly [CONNECTION_BRAND]: true;
+  /** Connection name */
+  readonly _name: string;
+  /** Type marker for inference */
+  readonly _type: "connection";
+  /** Connection type */
+  readonly _connectionType: "dynamodb";
+  /** DynamoDB options */
+  readonly options: DynamoDBConnectionOptions;
+}
+
+/**
  * A connection definition - union of all connection types
  */
 export type ConnectionDefinition =
   | KafkaConnectionDefinition
   | S3ConnectionDefinition
-  | GCSConnectionDefinition;
+  | GCSConnectionDefinition
+  | DynamoDBConnectionDefinition;
 
 function validateConnectionName(name: string): void {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
@@ -232,6 +258,46 @@ export function defineGCSConnection(
 }
 
 /**
+ * Define a DynamoDB connection
+ *
+ * @param name - The connection name (must be valid identifier)
+ * @param options - DynamoDB connection configuration
+ * @returns A connection definition that can be used in a project
+ *
+ * @example
+ * ```ts
+ * import { defineDynamoDBConnection } from '@tinybirdco/sdk';
+ *
+ * export const myDynamo = defineDynamoDBConnection('my_dynamo', {
+ *   region: 'us-east-1',
+ *   arn: '{{ tb_secret("DYNAMODB_ROLE_ARN") }}',
+ * });
+ * ```
+ */
+export function defineDynamoDBConnection(
+  name: string,
+  options: DynamoDBConnectionOptions
+): DynamoDBConnectionDefinition {
+  validateConnectionName(name);
+
+  if (!options.region?.trim()) {
+    throw new Error("DynamoDB connection `region` is required.");
+  }
+
+  if (!options.arn?.trim()) {
+    throw new Error("DynamoDB connection `arn` is required.");
+  }
+
+  return {
+    [CONNECTION_BRAND]: true,
+    _name: name,
+    _type: "connection",
+    _connectionType: "dynamodb",
+    options,
+  };
+}
+
+/**
  * Check if a value is a connection definition
  */
 export function isConnectionDefinition(value: unknown): value is ConnectionDefinition {
@@ -262,6 +328,15 @@ export function isS3ConnectionDefinition(value: unknown): value is S3ConnectionD
  */
 export function isGCSConnectionDefinition(value: unknown): value is GCSConnectionDefinition {
   return isConnectionDefinition(value) && value._connectionType === "gcs";
+}
+
+/**
+ * Check if a value is a DynamoDB connection definition
+ */
+export function isDynamoDBConnectionDefinition(
+  value: unknown
+): value is DynamoDBConnectionDefinition {
+  return isConnectionDefinition(value) && value._connectionType === "dynamodb";
 }
 
 /**

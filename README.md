@@ -557,7 +557,7 @@ In local mode:
 ### Connections
 
 ```typescript
-import { defineKafkaConnection, defineS3Connection, defineGCSConnection, secret } from "@tinybirdco/sdk";
+import { defineKafkaConnection, defineS3Connection, defineGCSConnection, defineDynamoDBConnection, secret } from "@tinybirdco/sdk";
 
 export const eventsKafka = defineKafkaConnection("events_kafka", {
   bootstrapServers: "kafka.example.com:9092",
@@ -575,13 +575,18 @@ export const landingS3 = defineS3Connection("landing_s3", {
 export const landingGCS = defineGCSConnection("landing_gcs", {
   serviceAccountCredentialsJson: secret("GCS_SERVICE_ACCOUNT_CREDENTIALS_JSON"),
 });
+
+export const eventsDynamo = defineDynamoDBConnection("events_dynamo", {
+  region: "us-east-1",
+  arn: secret("DYNAMODB_ROLE_ARN"),
+});
 ```
 
 Use connections from datasources:
 
 ```typescript
 import { defineDatasource, t, engine } from "@tinybirdco/sdk";
-import { eventsKafka, landingS3, landingGCS } from "./connections";
+import { eventsKafka, landingS3, landingGCS, eventsDynamo } from "./connections";
 
 export const kafkaEvents = defineDatasource("kafka_events", {
   schema: {
@@ -620,6 +625,26 @@ export const gcsLanding = defineDatasource("gcs_landing", {
     connection: landingGCS,
     bucketUri: "gs://my-gcs-bucket/events/*.csv",
     schedule: "@auto",
+  },
+});
+
+export const dynamoEvents = defineDatasource("dynamo_events", {
+  schema: {
+    id: t.string().jsonPath("$.Id"),
+    _record: t.string().jsonPath("$.NewImage"),
+    _timestamp: t.dateTime64(3).jsonPath("$.ApproximateCreationDateTime"),
+    _event_name: t.string().lowCardinality().jsonPath("$.eventName"),
+    _is_deleted: t.uint8().jsonPath("$._is_deleted"),
+  },
+  engine: engine.replacingMergeTree({
+    sortingKey: ["id"],
+    ver: "_timestamp",
+    isDeleted: "_is_deleted",
+  }),
+  dynamodb: {
+    connection: eventsDynamo,
+    tableArn: "arn:aws:dynamodb:us-east-1:123456789012:table/events",
+    exportBucket: "s3://my-export-bucket",
   },
 });
 ```

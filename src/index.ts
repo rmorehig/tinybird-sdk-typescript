@@ -116,6 +116,7 @@ export type {
   KafkaConfig,
   S3Config,
   GCSConfig,
+  DynamoDBConfig,
   DatasourceIndex,
 } from "./schema/datasource.js";
 
@@ -125,10 +126,12 @@ export {
   createKafkaConnection,
   defineS3Connection,
   defineGCSConnection,
+  defineDynamoDBConnection,
   isConnectionDefinition,
   isKafkaConnectionDefinition,
   isS3ConnectionDefinition,
   isGCSConnectionDefinition,
+  isDynamoDBConnectionDefinition,
   getConnectionType,
 } from "./schema/connection.js";
 export type {
@@ -142,6 +145,8 @@ export type {
   S3ConnectionOptions,
   GCSConnectionDefinition,
   GCSConnectionOptions,
+  DynamoDBConnectionDefinition,
+  DynamoDBConnectionOptions,
 } from "./schema/connection.js";
 
 // ============ Token ============

@@ -112,7 +112,7 @@ describe("Datasource Schema", () => {
             bucketUri: "s3://my-bucket/events/*.csv",
           },
         })
-      ).toThrow("Datasource can only define one ingestion option: `kafka`, `s3`, or `gcs`.");
+      ).toThrow("Datasource can only define one ingestion option: `kafka`, `s3`, `gcs`, or `dynamodb`.");
 
       expect(() =>
         defineDatasource("events_gcs", {
@@ -126,7 +126,7 @@ describe("Datasource Schema", () => {
             bucketUri: "gs://my-bucket/events/*.csv",
           },
         })
-      ).toThrow("Datasource can only define one ingestion option: `kafka`, `s3`, or `gcs`.");
+      ).toThrow("Datasource can only define one ingestion option: `kafka`, `s3`, `gcs`, or `dynamodb`.");
     });
 
     it("accepts gcs ingestion configuration", () => {
