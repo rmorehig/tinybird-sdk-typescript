@@ -227,8 +227,10 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
   let branch: TinybirdBranch;
   try {
     const apiConfig = { baseUrl: config.baseUrl, token: config.token };
-    const lastPartitionFromConfig =
-      config.branchDataMode === BranchDataMode.LAST_PARTITION;
+    const branchOptions =
+      config.branchDataMode === BranchDataMode.LAST_PARTITION
+        ? { branch_data_mode: BranchDataMode.LAST_PARTITION }
+        : undefined;
 
     // Check if branch already exists and delete it for a fresh start
     try {
@@ -253,9 +255,7 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
       console.log(`[debug] Creating preview branch: ${previewBranchName}`);
     }
 
-    branch = await createBranch(apiConfig, previewBranchName, {
-      lastPartition: lastPartitionFromConfig,
-    });
+    branch = await createBranch(apiConfig, previewBranchName, branchOptions);
 
     if (debug) {
       console.log(`[debug] Branch created: ${branch.name} (${branch.id})`);

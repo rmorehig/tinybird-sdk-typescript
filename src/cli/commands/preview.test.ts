@@ -117,7 +117,7 @@ describe("Preview command", () => {
       expect(createBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "tmp_ci_feature_test",
-        { lastPartition: true }
+        { branch_data_mode: BranchDataMode.LAST_PARTITION }
       );
     });
 

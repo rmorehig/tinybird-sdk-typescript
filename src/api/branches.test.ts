@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { BranchDataMode } from "../cli/config-types.js";
 import {
   BranchApiError,
   createBranch,
@@ -189,7 +190,7 @@ describe("Branch API client", () => {
       );
     });
 
-    it("uses last_partition=1 wire format when option is enabled", async () => {
+    it("uses data=last_partition wire format when branch_data_mode is set", async () => {
       const mockBranch = {
         id: "branch-123",
         name: "my-feature",
@@ -213,12 +214,14 @@ describe("Branch API client", () => {
         json: () => Promise.resolve(mockBranch),
       });
 
-      await createBranch(config, "my-feature", { lastPartition: true });
+      await createBranch(config, "my-feature", {
+        branch_data_mode: BranchDataMode.LAST_PARTITION,
+      });
 
       const [createUrl] = mockFetch.mock.calls[0];
       const createParsed = expectFromParam(createUrl);
       expect(createParsed.searchParams.get("name")).toBe("my-feature");
-      expect(createParsed.searchParams.get("last_partition")).toBe("1");
+      expect(createParsed.searchParams.get("data")).toBe("last_partition");
     });
 
     it("uses custom fetch when provided", async () => {
@@ -526,7 +529,9 @@ describe("Branch API client", () => {
         json: () => Promise.resolve(newBranch),
       });
 
-      const result = await clearBranch(config, "my-feature", { lastPartition: true });
+      const result = await clearBranch(config, "my-feature", {
+        branch_data_mode: BranchDataMode.LAST_PARTITION,
+      });
 
       expect(mockFetch).toHaveBeenCalledTimes(5);
 
@@ -547,7 +552,7 @@ describe("Branch API client", () => {
       const createParsed = expectFromParam(createUrl);
       expect(createParsed.pathname).toBe("/v1/environments");
       expect(createParsed.searchParams.get("name")).toBe("my-feature");
-      expect(createParsed.searchParams.get("last_partition")).toBe("1");
+      expect(createParsed.searchParams.get("data")).toBe("last_partition");
       expect(createInit.method).toBe("POST");
 
       expect(result).toEqual(newBranch);

@@ -3,6 +3,7 @@
  * Uses the /v1/environments endpoints (Forward API)
  */
 
+import { BranchDataMode } from "../cli/config-types.js";
 import { createTinybirdFetcher } from "./fetcher.js";
 
 /**
@@ -152,8 +153,8 @@ async function pollJob(
  * @returns The created branch with token
  */
 export interface CreateBranchOptions {
-  /** Copy the last partition of production data into the branch */
-  lastPartition?: boolean;
+  /** Data mode applied when creating the branch */
+  branch_data_mode?: BranchDataMode;
 }
 
 export async function createBranch(
@@ -164,8 +165,8 @@ export async function createBranch(
   const fetchFn = getFetch(config);
   const url = new URL("/v1/environments", config.baseUrl);
   url.searchParams.set("name", name);
-  if (options?.lastPartition) {
-    url.searchParams.set("last_partition", "1");
+  if (options?.branch_data_mode) {
+    url.searchParams.set("data", options.branch_data_mode);
   }
 
   const debug = !!process.env.TINYBIRD_DEBUG;

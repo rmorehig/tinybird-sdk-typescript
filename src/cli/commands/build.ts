@@ -226,16 +226,20 @@ export async function runBuild(options: BuildCommandOptions = {}): Promise<Build
         console.log(`[debug] Getting/creating Tinybird branch: ${config.tinybirdBranch}`);
       }
       try {
-        const lastPartitionFromConfig =
-          config.branchDataMode === BranchDataMode.LAST_PARTITION;
-        const lastPartitionFromFlag = Boolean(options.lastPartition);
+        const branchDataMode =
+          options.lastPartition || config.branchDataMode === BranchDataMode.LAST_PARTITION
+            ? BranchDataMode.LAST_PARTITION
+            : undefined;
+        const branchOptions = branchDataMode
+          ? { branch_data_mode: branchDataMode }
+          : undefined;
         const tinybirdBranch = await getOrCreateBranch(
           {
             baseUrl: config.baseUrl,
             token: config.token,
           },
           config.tinybirdBranch!,
-          { lastPartition: lastPartitionFromFlag || lastPartitionFromConfig }
+          branchOptions
         );
 
         if (!tinybirdBranch.token) {

@@ -366,7 +366,7 @@ describe("Build Command", () => {
       expect(getOrCreateBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "feature_test",
-        { lastPartition: true }
+        { branch_data_mode: BranchDataMode.LAST_PARTITION }
       );
     });
 
@@ -423,7 +423,7 @@ describe("Build Command", () => {
       expect(getOrCreateBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "feature_test",
-        { lastPartition: true }
+        { branch_data_mode: BranchDataMode.LAST_PARTITION }
       );
     });
 
