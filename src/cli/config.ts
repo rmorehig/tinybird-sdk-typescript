@@ -8,9 +8,16 @@ import { config as loadDotenv } from "dotenv";
 import { getCurrentGitBranch, isMainBranch, getTinybirdBranchName } from "./git.js";
 
 // Re-export config types/constants from config-types.ts (separate file to avoid bundling esbuild)
-export { BranchDataMode, type DevMode, type TinybirdConfig } from "./config-types.js";
-import { BranchDataMode } from "./config-types.js";
-import type { DevMode, TinybirdConfig } from "./config-types.js";
+export {
+  BRANCH_DATA_MODE_VALUES,
+  type BranchDataMode,
+  type DevMode,
+  type TinybirdConfig,
+} from "./config-types.js";
+import { BRANCH_DATA_MODE_VALUES } from "./config-types.js";
+import type { BranchDataMode, DevMode, TinybirdConfig } from "./config-types.js";
+
+const DEFAULT_BRANCH_DATA_MODE: BranchDataMode = "last_partition";
 
 /**
  * Resolved configuration with all values expanded
@@ -205,12 +212,14 @@ function resolveBranchDataMode(raw: Record<string, unknown>): { mode: BranchData
   }
 
   const value = raw["branch_data_mode"];
-  if (value === undefined || value === null) return { mode: BranchDataMode.LAST_PARTITION, explicit: false };
+  if (value === undefined || value === null) return { mode: DEFAULT_BRANCH_DATA_MODE, explicit: false };
   if (typeof value !== "string") throw new Error("branch_data_mode must be a string.");
   const mode = value.trim().toLowerCase();
-  if (!mode) return { mode: BranchDataMode.LAST_PARTITION, explicit: false };
-  if (mode !== BranchDataMode.LAST_PARTITION) {
-    throw new Error(`Invalid branch_data_mode '${value}'. Allowed values are: last_partition.`);
+  if (!mode) return { mode: DEFAULT_BRANCH_DATA_MODE, explicit: false };
+  if (!BRANCH_DATA_MODE_VALUES.includes(mode as BranchDataMode)) {
+    throw new Error(
+      `Invalid branch_data_mode '${value}'. Allowed values are: ${BRANCH_DATA_MODE_VALUES.join(", ")}.`
+    );
   }
   return { mode: mode as BranchDataMode, explicit: true };
 }

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generatePreviewBranchName, runPreview } from "./preview.js";
-import { BranchDataMode } from "../config-types.js";
 
 vi.mock("../config.js", () => ({
   loadConfigAsync: vi.fn(),
@@ -91,7 +90,7 @@ describe("Preview command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataMode: BranchDataMode.LAST_PARTITION,
+        branchDataMode: "last_partition",
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -117,7 +116,7 @@ describe("Preview command", () => {
       expect(createBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "tmp_ci_feature_test",
-        { branch_data_mode: BranchDataMode.LAST_PARTITION }
+        { branch_data_mode: "last_partition" }
       );
     });
 
@@ -138,7 +137,7 @@ describe("Preview command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataMode: BranchDataMode.LAST_PARTITION,
+        branchDataMode: "last_partition",
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },

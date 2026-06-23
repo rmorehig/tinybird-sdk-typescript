@@ -3,7 +3,7 @@
  * Uses the /v1/environments endpoints (Forward API)
  */
 
-import { BranchDataMode } from "../cli/config-types.js";
+import type { BranchDataMode } from "../cli/config-types.js";
 import { createTinybirdFetcher } from "./fetcher.js";
 
 /**

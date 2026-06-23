@@ -19,6 +19,7 @@ import type {
 } from "./types.js";
 import { TinybirdError } from "./types.js";
 import { TinybirdApi, TinybirdApiError } from "../api/api.js";
+import type { CreateBranchOptions } from "../api/branches.js";
 import { TokensNamespace } from "./tokens.js";
 
 /**
@@ -299,7 +300,6 @@ export class TinybirdClient {
       // out of the client bundle when not using dev mode
       const { loadConfigAsync } = await import("../cli/config.js");
       const { getOrCreateBranch } = await import("../api/branches.js");
-      const { BranchDataMode } = await import("../cli/config-types.js");
       const { isPreviewEnvironment, getPreviewBranchName } = await import(
         "./preview.js"
       );
@@ -341,10 +341,9 @@ export class TinybirdClient {
       }
 
       const branchName = config.tinybirdBranch;
-      const branchOptions =
-        config.devMode !== "local" &&
-        config.branchDataMode === BranchDataMode.LAST_PARTITION
-          ? { branch_data_mode: BranchDataMode.LAST_PARTITION }
+      const branchOptions: CreateBranchOptions | undefined =
+        config.devMode !== "local" && config.branchDataMode === "last_partition"
+          ? { branch_data_mode: "last_partition" }
           : undefined;
 
       // Get or create branch (always fetch fresh to avoid stale cache issues)

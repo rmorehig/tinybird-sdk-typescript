@@ -15,7 +15,6 @@ import {
   BranchApiError,
   type CreateBranchOptions,
 } from "../../api/branches.js";
-import { BranchDataMode } from "../config-types.js";
 import {
   setBranchToken,
   removeBranch as removeCachedBranch,
@@ -150,8 +149,8 @@ async function clearCloudBranch(config: ResolvedConfig): Promise<ClearResult> {
 
     // Clear the branch (delete and recreate)
     const branchOptions: CreateBranchOptions | undefined =
-      config.devMode !== "local" && config.branchDataMode === BranchDataMode.LAST_PARTITION
-        ? { branch_data_mode: BranchDataMode.LAST_PARTITION }
+      config.devMode !== "local" && config.branchDataMode === "last_partition"
+        ? { branch_data_mode: "last_partition" }
         : undefined;
 
     const newBranch = await clearBranch(

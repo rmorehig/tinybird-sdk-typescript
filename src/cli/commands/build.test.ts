@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { runBuild } from "./build.js";
-import { BranchDataMode } from "../config-types.js";
 
 // Mock all dependencies
 vi.mock("../config.js", () => ({
@@ -331,7 +330,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataMode: BranchDataMode.LAST_PARTITION,
+        branchDataMode: "last_partition",
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -366,7 +365,7 @@ describe("Build Command", () => {
       expect(getOrCreateBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "feature_test",
-        { branch_data_mode: BranchDataMode.LAST_PARTITION }
+        { branch_data_mode: "last_partition" }
       );
     });
 
@@ -423,7 +422,7 @@ describe("Build Command", () => {
       expect(getOrCreateBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "feature_test",
-        { branch_data_mode: BranchDataMode.LAST_PARTITION }
+        { branch_data_mode: "last_partition" }
       );
     });
 
@@ -446,7 +445,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataMode: BranchDataMode.LAST_PARTITION,
+        branchDataMode: "last_partition",
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },

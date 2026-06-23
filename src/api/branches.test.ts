@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { BranchDataMode } from "../cli/config-types.js";
 import {
   BranchApiError,
   createBranch,
@@ -215,7 +214,7 @@ describe("Branch API client", () => {
       });
 
       await createBranch(config, "my-feature", {
-        branch_data_mode: BranchDataMode.LAST_PARTITION,
+        branch_data_mode: "last_partition",
       });
 
       const [createUrl] = mockFetch.mock.calls[0];
@@ -530,7 +529,7 @@ describe("Branch API client", () => {
       });
 
       const result = await clearBranch(config, "my-feature", {
-        branch_data_mode: BranchDataMode.LAST_PARTITION,
+        branch_data_mode: "last_partition",
       });
 
       expect(mockFetch).toHaveBeenCalledTimes(5);

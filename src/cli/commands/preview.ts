@@ -3,9 +3,8 @@
  */
 
 import { loadConfigAsync, LOCAL_BASE_URL, type ResolvedConfig, type DevMode } from "../config.js";
-import { BranchDataMode } from "../config-types.js";
 import { buildFromInclude, type BuildFromIncludeResult } from "../../generator/index.js";
-import { createBranch, deleteBranch, getBranch, type TinybirdBranch } from "../../api/branches.js";
+import { createBranch, deleteBranch, getBranch, type CreateBranchOptions, type TinybirdBranch } from "../../api/branches.js";
 import { deployToMain } from "../../api/deploy.js";
 import { buildToTinybird } from "../../api/build.js";
 import {
@@ -227,9 +226,9 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
   let branch: TinybirdBranch;
   try {
     const apiConfig = { baseUrl: config.baseUrl, token: config.token };
-    const branchOptions =
-      config.branchDataMode === BranchDataMode.LAST_PARTITION
-        ? { branch_data_mode: BranchDataMode.LAST_PARTITION }
+    const branchOptions: CreateBranchOptions | undefined =
+      config.branchDataMode === "last_partition"
+        ? { branch_data_mode: "last_partition" }
         : undefined;
 
     // Check if branch already exists and delete it for a fresh start
