@@ -64,6 +64,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -156,6 +157,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -242,6 +244,7 @@ describe("Build Command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
+        branchDataMode: null,
       });
 
       vi.mocked(buildFromInclude).mockResolvedValue({
@@ -305,6 +308,179 @@ describe("Build Command", () => {
       expect(result.branchInfo?.isLocal).toBe(true);
       // Verify local APIs were called (because config says local)
       expect(getLocalTokens).toHaveBeenCalled();
+    });
+  });
+
+  describe("branch_data_mode wiring", () => {
+    it("uses config-only last_partition when flag is absent", async () => {
+      const { loadConfigAsync } = await import("../config.js");
+      const { buildFromInclude } = await import("../../generator/index.js");
+      const { getOrCreateBranch } = await import("../../api/branches.js");
+      const { buildToTinybird } = await import("../../api/build.js");
+      const { getWorkspace } = await import("../../api/workspaces.js");
+      const { getBranchDashboardUrl } = await import("../../api/dashboard.js");
+
+      vi.mocked(loadConfigAsync).mockResolvedValue({
+        include: ["test.ts"],
+        token: "p.test-token",
+        baseUrl: "https://api.tinybird.co",
+        configPath: "/test/tinybird.config.json",
+        devMode: "branch",
+        cwd: "/test",
+        gitBranch: "feature-test",
+        tinybirdBranch: "feature_test",
+        isMainBranch: false,
+        branchDataMode: "last_partition",
+      });
+      vi.mocked(buildFromInclude).mockResolvedValue({
+        resources: { datasources: [], pipes: [], connections: [] },
+        entities: { datasources: {}, pipes: {}, connections: {}, rawDatasources: [], rawPipes: [], sourceFiles: [] },
+        stats: { datasourceCount: 0, pipeCount: 0, connectionCount: 0 },
+      });
+      vi.mocked(getOrCreateBranch).mockResolvedValue({
+        id: "branch-id",
+        name: "feature_test",
+        token: "branch-token",
+        wasCreated: false,
+        created_at: "2024-01-01",
+      });
+      vi.mocked(getWorkspace).mockResolvedValue({
+        id: "ws-id",
+        name: "test-workspace",
+        user_id: "user-id",
+        user_email: "user@test.com",
+        scope: "USER",
+        main: null,
+      });
+      vi.mocked(getBranchDashboardUrl).mockReturnValue("https://app.tinybird.co/dashboard");
+      vi.mocked(buildToTinybird).mockResolvedValue({
+        success: true,
+        result: "success",
+        datasourceCount: 0,
+        pipeCount: 0,
+        connectionCount: 0,
+      });
+
+      await runBuild();
+      expect(getOrCreateBranch).toHaveBeenCalledWith(
+        expect.any(Object),
+        "feature_test",
+        { branch_data_mode: "last_partition" }
+      );
+    });
+
+    it("keeps CLI --last-partition precedence over config", async () => {
+      const { loadConfigAsync } = await import("../config.js");
+      const { buildFromInclude } = await import("../../generator/index.js");
+      const { getOrCreateBranch } = await import("../../api/branches.js");
+      const { buildToTinybird } = await import("../../api/build.js");
+      const { getWorkspace } = await import("../../api/workspaces.js");
+      const { getBranchDashboardUrl } = await import("../../api/dashboard.js");
+
+      vi.mocked(loadConfigAsync).mockResolvedValue({
+        include: ["test.ts"],
+        token: "p.test-token",
+        baseUrl: "https://api.tinybird.co",
+        configPath: "/test/tinybird.config.json",
+        devMode: "branch",
+        cwd: "/test",
+        gitBranch: "feature-test",
+        tinybirdBranch: "feature_test",
+        isMainBranch: false,
+        branchDataMode: null,
+      });
+      vi.mocked(buildFromInclude).mockResolvedValue({
+        resources: { datasources: [], pipes: [], connections: [] },
+        entities: { datasources: {}, pipes: {}, connections: {}, rawDatasources: [], rawPipes: [], sourceFiles: [] },
+        stats: { datasourceCount: 0, pipeCount: 0, connectionCount: 0 },
+      });
+      vi.mocked(getOrCreateBranch).mockResolvedValue({
+        id: "branch-id",
+        name: "feature_test",
+        token: "branch-token",
+        wasCreated: false,
+        created_at: "2024-01-01",
+      });
+      vi.mocked(getWorkspace).mockResolvedValue({
+        id: "ws-id",
+        name: "test-workspace",
+        user_id: "user-id",
+        user_email: "user@test.com",
+        scope: "USER",
+        main: null,
+      });
+      vi.mocked(getBranchDashboardUrl).mockReturnValue("https://app.tinybird.co/dashboard");
+      vi.mocked(buildToTinybird).mockResolvedValue({
+        success: true,
+        result: "success",
+        datasourceCount: 0,
+        pipeCount: 0,
+        connectionCount: 0,
+      });
+
+      await runBuild({ lastPartition: true });
+      expect(getOrCreateBranch).toHaveBeenCalledWith(
+        expect.any(Object),
+        "feature_test",
+        { branch_data_mode: "last_partition" }
+      );
+    });
+
+    it("ignores config branch_data_mode in local mode", async () => {
+      const { loadConfigAsync } = await import("../config.js");
+      const { buildFromInclude } = await import("../../generator/index.js");
+      const { getOrCreateBranch } = await import("../../api/branches.js");
+      const { getLocalTokens, getOrCreateLocalWorkspace, getLocalWorkspaceName } = await import("../../api/local.js");
+      const { buildToTinybird } = await import("../../api/build.js");
+      const { getWorkspace } = await import("../../api/workspaces.js");
+      const { getLocalDashboardUrl } = await import("../../api/dashboard.js");
+
+      vi.mocked(loadConfigAsync).mockResolvedValue({
+        include: ["test.ts"],
+        token: "p.test-token",
+        baseUrl: "https://api.tinybird.co",
+        configPath: "/test/tinybird.config.json",
+        devMode: "local",
+        cwd: "/test",
+        gitBranch: "feature-test",
+        tinybirdBranch: "feature_test",
+        isMainBranch: false,
+        branchDataMode: "last_partition",
+      });
+      vi.mocked(buildFromInclude).mockResolvedValue({
+        resources: { datasources: [], pipes: [], connections: [] },
+        entities: { datasources: {}, pipes: {}, connections: {}, rawDatasources: [], rawPipes: [], sourceFiles: [] },
+        stats: { datasourceCount: 0, pipeCount: 0, connectionCount: 0 },
+      });
+      vi.mocked(getLocalTokens).mockResolvedValue({
+        admin_token: "admin-token",
+        user_token: "user-token",
+        workspace_admin_token: "workspace-admin-token",
+      });
+      vi.mocked(getWorkspace).mockResolvedValue({
+        id: "ws-id",
+        name: "test-workspace",
+        user_id: "user-id",
+        user_email: "user@test.com",
+        scope: "USER",
+        main: null,
+      });
+      vi.mocked(getLocalWorkspaceName).mockReturnValue("feature_test_workspace");
+      vi.mocked(getOrCreateLocalWorkspace).mockResolvedValue({
+        workspace: { id: "local-ws-id", name: "feature_test_workspace", token: "local-token" },
+        wasCreated: false,
+      });
+      vi.mocked(getLocalDashboardUrl).mockReturnValue("http://localhost:7181/dashboard");
+      vi.mocked(buildToTinybird).mockResolvedValue({
+        success: true,
+        result: "success",
+        datasourceCount: 0,
+        pipeCount: 0,
+        connectionCount: 0,
+      });
+
+      await runBuild();
+      expect(getOrCreateBranch).not.toHaveBeenCalled();
     });
   });
 });

@@ -189,6 +189,40 @@ describe("Branch API client", () => {
       );
     });
 
+    it("uses data=last_partition wire format when branch_data_mode is set", async () => {
+      const mockBranch = {
+        id: "branch-123",
+        name: "my-feature",
+        token: "p.branch-token",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          job: { id: "job-123", status: "waiting" },
+          workspace: { id: "ws-123" },
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "job-123", status: "done" }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockBranch),
+      });
+
+      await createBranch(config, "my-feature", {
+        branch_data_mode: "last_partition",
+      });
+
+      const [createUrl] = mockFetch.mock.calls[0];
+      const createParsed = expectFromParam(createUrl);
+      expect(createParsed.searchParams.get("name")).toBe("my-feature");
+      expect(createParsed.searchParams.get("data")).toBe("last_partition");
+    });
+
     it("uses custom fetch when provided", async () => {
       const customFetch = vi
         .fn()
@@ -494,7 +528,9 @@ describe("Branch API client", () => {
         json: () => Promise.resolve(newBranch),
       });
 
-      const result = await clearBranch(config, "my-feature");
+      const result = await clearBranch(config, "my-feature", {
+        branch_data_mode: "last_partition",
+      });
 
       expect(mockFetch).toHaveBeenCalledTimes(5);
 
@@ -515,6 +551,7 @@ describe("Branch API client", () => {
       const createParsed = expectFromParam(createUrl);
       expect(createParsed.pathname).toBe("/v1/environments");
       expect(createParsed.searchParams.get("name")).toBe("my-feature");
+      expect(createParsed.searchParams.get("data")).toBe("last_partition");
       expect(createInit.method).toBe("POST");
 
       expect(result).toEqual(newBranch);

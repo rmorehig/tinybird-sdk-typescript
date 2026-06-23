@@ -19,6 +19,7 @@ import type {
 } from "./types.js";
 import { TinybirdError } from "./types.js";
 import { TinybirdApi, TinybirdApiError } from "../api/api.js";
+import type { CreateBranchOptions } from "../api/branches.js";
 import { TokensNamespace } from "./tokens.js";
 
 /**
@@ -340,6 +341,10 @@ export class TinybirdClient {
       }
 
       const branchName = config.tinybirdBranch;
+      const branchOptions: CreateBranchOptions | undefined =
+        config.devMode !== "local" && config.branchDataMode === "last_partition"
+          ? { branch_data_mode: "last_partition" }
+          : undefined;
 
       // Get or create branch (always fetch fresh to avoid stale cache issues)
       const branch = await getOrCreateBranch(
@@ -348,7 +353,8 @@ export class TinybirdClient {
           token: this.config.token,
           fetch: this.config.fetch,
         },
-        branchName
+        branchName,
+        branchOptions
       );
 
       if (!branch.token) {

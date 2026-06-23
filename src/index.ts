@@ -317,4 +317,4 @@ export type {
 
 // ============ Config Types ============
 // Import from config-types.ts to avoid bundling esbuild in client code
-export type { TinybirdConfig, DevMode } from "./cli/config-types.js";
+export type { TinybirdConfig, DevMode, BranchDataMode } from "./cli/config-types.js";

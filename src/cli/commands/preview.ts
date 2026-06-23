@@ -4,7 +4,7 @@
 
 import { loadConfigAsync, LOCAL_BASE_URL, type ResolvedConfig, type DevMode } from "../config.js";
 import { buildFromInclude, type BuildFromIncludeResult } from "../../generator/index.js";
-import { createBranch, deleteBranch, getBranch, type TinybirdBranch } from "../../api/branches.js";
+import { createBranch, deleteBranch, getBranch, type CreateBranchOptions, type TinybirdBranch } from "../../api/branches.js";
 import { deployToMain } from "../../api/deploy.js";
 import { buildToTinybird } from "../../api/build.js";
 import {
@@ -226,6 +226,10 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
   let branch: TinybirdBranch;
   try {
     const apiConfig = { baseUrl: config.baseUrl, token: config.token };
+    const branchOptions: CreateBranchOptions | undefined =
+      config.branchDataMode === "last_partition"
+        ? { branch_data_mode: "last_partition" }
+        : undefined;
 
     // Check if branch already exists and delete it for a fresh start
     try {
@@ -250,7 +254,7 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
       console.log(`[debug] Creating preview branch: ${previewBranchName}`);
     }
 
-    branch = await createBranch(apiConfig, previewBranchName);
+    branch = await createBranch(apiConfig, previewBranchName, branchOptions);
 
     if (debug) {
       console.log(`[debug] Branch created: ${branch.name} (${branch.id})`);

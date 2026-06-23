@@ -13,6 +13,7 @@ import {
   LOCAL_BASE_URL,
   type ResolvedConfig,
   type DevMode,
+  type BranchDataMode,
 } from "../config.js";
 import { runBuild, type BuildCommandResult } from "./build.js";
 import { getOrCreateBranch, type TinybirdBranch } from "../../api/branches.js";
@@ -239,6 +240,13 @@ export async function runDev(
     // Use tinybirdBranch (sanitized name) for Tinybird API, gitBranch for display
     if (config.tinybirdBranch) {
       const branchName = config.tinybirdBranch; // Sanitized name for Tinybird
+      const branchDataMode: BranchDataMode | undefined =
+        options.lastPartition || config.branchDataMode === "last_partition"
+          ? "last_partition"
+          : undefined;
+      const branchOptions = branchDataMode
+        ? { branch_data_mode: branchDataMode }
+        : undefined;
 
       // Always fetch fresh from API to avoid stale cache issues
       const tinybirdBranch = await getOrCreateBranch(
@@ -247,7 +255,7 @@ export async function runDev(
           token: config.token,
         },
         branchName,
-        { lastPartition: options.lastPartition }
+        branchOptions
       );
 
       if (!tinybirdBranch.token) {
