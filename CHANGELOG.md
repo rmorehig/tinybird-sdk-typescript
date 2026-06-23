@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.0.79] - 2026-06-23
+
+### Added
+
+- DynamoDB connector support via `defineDynamoDBConnection` and datasource `dynamodb` ingestion config.
+- Migration and code generation support for DynamoDB connections and datasources.
+
+### Changed
+
+- Cloud branch creation now reads `branch_data_mode` from `tinybird.config.json` and passes it to the branch create API.
+- Branch create API options now use `branch_data_mode` (query param `data`) instead of `lastPartition`.
+- `BranchDataMode` is now a string type union instead of an enum.
+
 ## [0.0.78] - 2026-06-15
 
 ### Changed
