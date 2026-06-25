@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.0.80] - 2026-06-24
+
+### Security
+
+- Bumped `esbuild` from `^0.24.0` to `^0.25.0` to resolve GHSA-67mh-4wv8-2f99 (esbuild dev-server CORS), flagged by Dependabot at moderate severity.
+
 ## [0.0.79] - 2026-06-23
 
 ### Added
