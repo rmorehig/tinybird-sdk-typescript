@@ -617,6 +617,48 @@ IMPORT_FROM_TIMESTAMP 2024-01-01T00:00:00Z
     expect(output).toContain('fromTimestamp: "2024-01-01T00:00:00Z"');
   });
 
+  it("round-trips IMPORT_FORMAT for s3 import datasource directives", async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tinybird-migrate-"));
+    tempDirs.push(tempDir);
+
+    writeFile(
+      tempDir,
+      "s3sample.connection",
+      `TYPE s3
+S3_REGION "us-east-1"
+S3_ARN "arn:aws:iam::123456789012:role/tinybird-s3-access"
+`
+    );
+
+    writeFile(
+      tempDir,
+      "events_landing.datasource",
+      `SCHEMA >
+    timestamp DateTime,
+    session_id String
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "timestamp"
+IMPORT_CONNECTION_NAME s3sample
+IMPORT_BUCKET_URI s3://my-bucket/events/*.log
+IMPORT_FORMAT "ndjson"
+`
+    );
+
+    const result = await runMigrate({
+      cwd: tempDir,
+      patterns: ["."],
+      strict: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toHaveLength(0);
+
+    const output = fs.readFileSync(result.outputPath, "utf-8");
+    expect(output).toContain('bucketUri: "s3://my-bucket/events/*.log"');
+    expect(output).toContain('importFormat: "ndjson"');
+  });
+
   it("migrates gcs connection and import datasource directives", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "tinybird-migrate-"));
     tempDirs.push(tempDir);

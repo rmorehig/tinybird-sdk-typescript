@@ -39,6 +39,7 @@ const DATASOURCE_DIRECTIVES = new Set([
   "IMPORT_BUCKET_URI",
   "IMPORT_SCHEDULE",
   "IMPORT_FROM_TIMESTAMP",
+  "IMPORT_FORMAT",
   "IMPORT_TABLE_ARN",
   "IMPORT_EXPORT_BUCKET",
   "TOKEN",
@@ -323,6 +324,7 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
   let importBucketUri: string | undefined;
   let importSchedule: string | undefined;
   let importFromTimestamp: string | undefined;
+  let importFormat: string | undefined;
   let importTableArn: string | undefined;
   let importExportBucket: string | undefined;
 
@@ -502,6 +504,9 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
       case "IMPORT_FROM_TIMESTAMP":
         importFromTimestamp = parseQuotedValue(value);
         break;
+      case "IMPORT_FORMAT":
+        importFormat = parseQuotedValue(value);
+        break;
       case "IMPORT_TABLE_ARN":
         importTableArn = parseQuotedValue(value);
         break;
@@ -606,12 +611,17 @@ export function parseDatasourceFile(resource: ResourceFile): DatasourceModel {
 
   const s3 =
     !isDynamoDB &&
-    (importConnectionName || importBucketUri || importSchedule || importFromTimestamp)
+    (importConnectionName ||
+      importBucketUri ||
+      importSchedule ||
+      importFromTimestamp ||
+      importFormat)
       ? {
           connectionName: importConnectionName ?? "",
           bucketUri: importBucketUri ?? "",
           schedule: importSchedule,
           fromTimestamp: importFromTimestamp,
+          importFormat,
         }
       : undefined;
 
