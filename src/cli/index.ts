@@ -482,11 +482,24 @@ function createCli(): Command {
       "--allow-destructive-operations",
       "Allow deploys that delete existing datasources, pipes, or connections"
     )
+    .option("--wait", "Wait for the deployment to finish (default)")
+    .option("--no-wait", "Return as soon as the deployment is submitted")
+    .option(
+      "--auto",
+      "Auto-promote the deployment when it's ready (default)"
+    )
+    .option(
+      "--no-auto",
+      "Do not auto-promote the deployment; leave it staged for a manual promote"
+    )
     .option("--debug", "Show debug output including API requests/responses")
     .action(async (options) => {
       if (options.debug) {
         process.env.TINYBIRD_DEBUG = "1";
       }
+
+      const wait = options.wait !== false;
+      const auto = options.auto !== false;
 
       output.highlight("Deploying to main workspace...");
 
@@ -494,6 +507,8 @@ function createCli(): Command {
         dryRun: options.dryRun,
         check: options.check,
         allowDestructiveOperations: options.allowDestructiveOperations,
+        wait,
+        auto,
         callbacks: {
           onChanges: (deployChanges) => {
             // Show changes table immediately after deployment is created
@@ -531,8 +546,11 @@ function createCli(): Command {
 
             output.showChangesTable(changes);
           },
+          onDeploymentSubmitted: (id) => output.showDeploymentSubmitted(id, auto),
           onWaitingForReady: () => output.showWaitingForDeployment(),
           onDeploymentReady: () => output.showDeploymentReady(),
+          onWaitingForPromote: () => output.showWaitingForPromote(),
+          onDeploymentPromoted: () => output.showDeploymentPromoted(),
           onDeploymentLive: (id) => output.showDeploymentLive(id),
           onValidating: () => output.showValidatingDeployment(),
         },

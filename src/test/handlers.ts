@@ -86,22 +86,18 @@ export function createDeploySuccessResponse(options?: {
 export function createDeploymentStatusResponse(options?: {
   deploymentId?: string;
   status?: string;
+  live?: boolean;
 }) {
+  const status = options?.status ?? "data_ready";
   return {
     result: "success",
     deployment: {
       id: options?.deploymentId ?? "deploy-123",
-      status: options?.status ?? "data_ready",
+      status,
+      // When the deployment is `data_ready` the default assumes the server
+      // has already auto-promoted it, which is what most tests exercise.
+      live: options?.live ?? status === "data_ready",
     },
-  };
-}
-
-/**
- * Create set-live success response (for /v1/deployments/:id/set-live endpoint)
- */
-export function createSetLiveSuccessResponse() {
-  return {
-    result: "success",
   };
 }
 

@@ -219,6 +219,30 @@ export function showDeploymentLive(deploymentId: string): void {
 }
 
 /**
+ * Show waiting for deployment promotion message
+ */
+export function showWaitingForPromote(): void {
+  info("» Waiting for deployment to be promoted...");
+}
+
+/**
+ * Show deployment submitted message (used when --no-wait is set)
+ */
+export function showDeploymentSubmitted(deploymentId: string, autoPromote: boolean): void {
+  const autoFrag = autoPromote
+    ? " It will be auto-promoted when ready."
+    : " It won't be auto-promoted when ready.";
+  success(`✓ Deployment #${deploymentId} submitted.${autoFrag}`);
+}
+
+/**
+ * Show deployment promoted message
+ */
+export function showDeploymentPromoted(): void {
+  success("✓ Deployment promoted");
+}
+
+/**
  * Show validating deployment message
  */
 export function showValidatingDeployment(): void {
@@ -424,6 +448,9 @@ export const output = {
   showNoChanges,
   showWaitingForDeployment,
   showDeploymentReady,
+  showWaitingForPromote,
+  showDeploymentPromoted,
+  showDeploymentSubmitted,
   showDeploymentLive,
   showValidatingDeployment,
   showDeploySuccess,

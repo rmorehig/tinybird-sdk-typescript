@@ -19,6 +19,14 @@ export interface DeployCommandOptions {
   check?: boolean;
   /** Allow deleting existing resources in main workspace deploys */
   allowDestructiveOperations?: boolean;
+  /**
+   * Wait for the deployment to finish. Defaults to true.
+   */
+  wait?: boolean;
+  /**
+   * Auto-promote the deployment when it's ready. Defaults to true.
+   */
+  auto?: boolean;
   /** Callbacks for deploy progress */
   callbacks?: DeployCallbacks;
 }
@@ -106,6 +114,8 @@ export async function runDeploy(options: DeployCommandOptions = {}): Promise<Dep
       {
         check: options.check,
         allowDestructiveOperations: options.allowDestructiveOperations,
+        wait: options.wait,
+        auto: options.auto,
         callbacks: options.callbacks,
       }
     );
