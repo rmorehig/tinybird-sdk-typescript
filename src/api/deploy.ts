@@ -6,14 +6,22 @@
 import type { GeneratedResources } from "../generator/index.js";
 import type { BuildConfig, BuildApiResult } from "./build.js";
 import { tinybirdFetch } from "./fetcher.js";
-import {
-  MAX_CONSECUTIVE_FAILED_POLLS,
-  POLL_INTERVAL_MS,
-  sleep,
-} from "./_deploy_timing.js";
 
 const FORWARD_CLASSIC_GUIDANCE =
   "Use the Tinybird Classic CLI (`tb`) from a Tinybird Classic workspace for this operation.";
+
+/**
+ * Poll interval used while waiting for a deployment to reach `data_ready`
+ * (and, when auto-promoting, `live`). Matches the Tinybird CLI (`tb deploy`).
+ */
+const POLL_INTERVAL_MS = 5_000;
+
+/**
+ * How many consecutive `failed` status polls to tolerate before giving up.
+ * With a 5s poll interval this is ~5 minutes, matching the CLI safety valve
+ * for deployments that fail but never auto-delete.
+ */
+export const MAX_CONSECUTIVE_FAILED_POLLS = 60;
 
 /**
  * Feedback item from deployment response
@@ -466,15 +474,6 @@ export async function deployToMain(
   }
 
   // Step 2: Poll until the deployment reaches a terminal state.
-  //
-  // Poll cadence and semantics match `tb deploy` (deployment_common.py):
-  //   - No overall attempt cap: we poll forever at POLL_INTERVAL_MS.
-  //   - `failed` is transient — count consecutive occurrences. If the server
-  //     doesn't move the deployment to `deleting`/`deleted` within
-  //     MAX_CONSECUTIVE_FAILED_POLLS polls (~5 minutes), bail out with a
-  //     "stuck" error.
-  //   - `deleting`/`deleted` means the server gave up; bail with its errors.
-  //   - `data_ready` (+ `live`, when auto-promoting) is success.
   let deployment = body.deployment;
   let timesSeenFailed = 0;
   let notifiedReady = false;
@@ -593,6 +592,13 @@ export async function deployToMain(
     buildId: deploymentId,
     ...deploymentChanges,
   };
+}
+
+/**
+ * Helper function to sleep for a given number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function normalizeDeployErrorMessage(message: string): string {

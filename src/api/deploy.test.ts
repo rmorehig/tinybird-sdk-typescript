@@ -2,21 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } 
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
 
-// Mock the timing module so tests never wait real wall-clock time. The 5s
-// poll cadence and 60-poll safety valve are semantic (matched to the CLI),
-// but tests only care about the sequence of calls — not the delay between
-// them — so we swap sleep for a no-op and shrink the safety threshold to
-// something we can drive in a single test.
-const { MOCK_MAX_CONSECUTIVE_FAILED_POLLS } = vi.hoisted(() => ({
-  MOCK_MAX_CONSECUTIVE_FAILED_POLLS: 3,
-}));
-vi.mock("./_deploy_timing.js", () => ({
-  POLL_INTERVAL_MS: 0,
-  MAX_CONSECUTIVE_FAILED_POLLS: MOCK_MAX_CONSECUTIVE_FAILED_POLLS,
-  sleep: () => Promise.resolve(),
-}));
-
-import { deployToMain } from "./deploy.js";
+import { deployToMain, MAX_CONSECUTIVE_FAILED_POLLS } from "./deploy.js";
 import type { BuildConfig } from "./build.js";
 import {
   BASE_URL,
@@ -30,7 +16,12 @@ import type { GeneratedResources } from "../generator/index.js";
 
 const server = setupServer();
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+  vi.stubGlobal("setTimeout", (fn: () => void) => {
+    Promise.resolve().then(fn);
+  });
+});
 beforeEach(() => {
   // Set up default handler for deployments list (used by stale deployment cleanup)
   server.use(
@@ -40,7 +31,10 @@ beforeEach(() => {
   );
 });
 afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+afterAll(() => {
+  server.close();
+  vi.unstubAllGlobals();
+});
 
 describe("Deploy API", () => {
   const config: BuildConfig = {
@@ -550,7 +544,7 @@ describe("Deploy API", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("didn't start deleting automatically");
       // One extra poll past the threshold trips the safety valve.
-      expect(pollCount).toBe(MOCK_MAX_CONSECUTIVE_FAILED_POLLS + 1);
+      expect(pollCount).toBe(MAX_CONSECUTIVE_FAILED_POLLS + 1);
     });
 
     it("normalizes baseUrl with trailing slash", async () => {
