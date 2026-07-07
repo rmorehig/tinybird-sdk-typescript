@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from "vitest";
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
-import { deployToMain } from "./deploy.js";
+
+import { deployToMain, MAX_CONSECUTIVE_FAILED_POLLS } from "./deploy.js";
 import type { BuildConfig } from "./build.js";
 import {
   BASE_URL,
   createDeploySuccessResponse,
   createDeploymentStatusResponse,
-  createSetLiveSuccessResponse,
   createBuildFailureResponse,
   createBuildMultipleErrorsResponse,
   createDeploymentsListResponse,
@@ -16,7 +16,12 @@ import type { GeneratedResources } from "../generator/index.js";
 
 const server = setupServer();
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+  vi.stubGlobal("setTimeout", (fn: () => void) => {
+    Promise.resolve().then(fn);
+  });
+});
 beforeEach(() => {
   // Set up default handler for deployments list (used by stale deployment cleanup)
   server.use(
@@ -26,7 +31,10 @@ beforeEach(() => {
   );
 });
 afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+afterAll(() => {
+  server.close();
+  vi.unstubAllGlobals();
+});
 
 describe("Deploy API", () => {
   const config: BuildConfig = {
@@ -44,7 +52,9 @@ describe("Deploy API", () => {
     connections: [],
   };
 
-  // Helper to set up successful deploy flow
+  // Helper to set up successful deploy flow. By default the deployment shows
+  // up as live on the very first status poll, which matches the server-side
+  // auto_promote=true behavior the SDK now relies on.
   function setupSuccessfulDeployFlow(deploymentId = "deploy-abc") {
     server.use(
       http.post(`${BASE_URL}/v1/deploy`, () => {
@@ -54,11 +64,12 @@ describe("Deploy API", () => {
       }),
       http.get(`${BASE_URL}/v1/deployments/${deploymentId}`, () => {
         return HttpResponse.json(
-          createDeploymentStatusResponse({ deploymentId, status: "data_ready" })
+          createDeploymentStatusResponse({
+            deploymentId,
+            status: "data_ready",
+            live: true,
+          })
         );
-      }),
-      http.post(`${BASE_URL}/v1/deployments/${deploymentId}/set-live`, () => {
-        return HttpResponse.json(createSetLiveSuccessResponse());
       })
     );
   }
@@ -67,7 +78,7 @@ describe("Deploy API", () => {
     it("successfully deploys resources with full flow", async () => {
       setupSuccessfulDeployFlow("deploy-abc");
 
-      const result = await deployToMain(config, resources, { pollIntervalMs: 1 });
+      const result = await deployToMain(config, resources);
 
       expect(result.success).toBe(true);
       expect(result.result).toBe("success");
@@ -76,7 +87,7 @@ describe("Deploy API", () => {
       expect(result.pipeCount).toBe(1);
     });
 
-    it("polls until deployment is ready", async () => {
+    it("polls until deployment is ready and live", async () => {
       let pollCount = 0;
 
       server.use(
@@ -87,21 +98,39 @@ describe("Deploy API", () => {
         }),
         http.get(`${BASE_URL}/v1/deployments/deploy-poll`, () => {
           pollCount++;
-          // Return pending for first 2 polls, then data_ready
-          const status = pollCount < 3 ? "pending" : "data_ready";
+          // pending → data_ready (not live yet) → data_ready + live.
+          if (pollCount < 3) {
+            return HttpResponse.json(
+              createDeploymentStatusResponse({
+                deploymentId: "deploy-poll",
+                status: "pending",
+                live: false,
+              })
+            );
+          }
+          if (pollCount === 3) {
+            return HttpResponse.json(
+              createDeploymentStatusResponse({
+                deploymentId: "deploy-poll",
+                status: "data_ready",
+                live: false,
+              })
+            );
+          }
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-poll", status })
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-poll",
+              status: "data_ready",
+              live: true,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-poll/set-live`, () => {
-          return HttpResponse.json(createSetLiveSuccessResponse());
         })
       );
 
-      const result = await deployToMain(config, resources, { pollIntervalMs: 1 });
+      const result = await deployToMain(config, resources);
 
       expect(result.success).toBe(true);
-      expect(pollCount).toBe(3);
+      expect(pollCount).toBe(4);
     });
 
     it("handles deploy failure with single error", async () => {
@@ -196,7 +225,7 @@ describe("Deploy API", () => {
       );
     });
 
-    it("uses /v1/deploy endpoint (not /v1/build)", async () => {
+    it("uses /v1/deploy endpoint with auto_promote by default", async () => {
       let capturedUrl: string | null = null;
 
       server.use(
@@ -208,19 +237,81 @@ describe("Deploy API", () => {
         }),
         http.get(`${BASE_URL}/v1/deployments/deploy-url-test`, () => {
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-url-test", status: "data_ready" })
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-url-test",
+              status: "data_ready",
+              live: true,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-url-test/set-live`, () => {
-          return HttpResponse.json(createSetLiveSuccessResponse());
         })
       );
 
-      await deployToMain(config, resources, { pollIntervalMs: 1 });
+      await deployToMain(config, resources);
 
       const parsed = new URL(capturedUrl ?? "");
       expect(parsed.pathname).toBe("/v1/deploy");
       expect(parsed.searchParams.get("from")).toBe("ts-sdk");
+      expect(parsed.searchParams.get("auto_promote")).toBe("true");
+    });
+
+    it("omits auto_promote when auto is false", async () => {
+      let capturedUrl: string | null = null;
+
+      server.use(
+        http.post(`${BASE_URL}/v1/deploy`, ({ request }) => {
+          capturedUrl = request.url;
+          return HttpResponse.json(
+            createDeploySuccessResponse({ deploymentId: "deploy-no-auto" })
+          );
+        }),
+        http.get(`${BASE_URL}/v1/deployments/deploy-no-auto`, () => {
+          return HttpResponse.json(
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-no-auto",
+              status: "data_ready",
+              live: false,
+            })
+          );
+        })
+      );
+
+      const result = await deployToMain(config, resources, { auto: false });
+
+      const parsed = new URL(capturedUrl ?? "");
+      expect(parsed.searchParams.get("auto_promote")).toBeNull();
+      // When !auto, we return success as soon as the deployment is data_ready,
+      // even though `live` is still false (user must promote it separately).
+      expect(result.success).toBe(true);
+      expect(result.buildId).toBe("deploy-no-auto");
+    });
+
+    it("returns immediately when wait is false", async () => {
+      let statusPolls = 0;
+
+      server.use(
+        http.post(`${BASE_URL}/v1/deploy`, () => {
+          return HttpResponse.json(
+            createDeploySuccessResponse({ deploymentId: "deploy-no-wait" })
+          );
+        }),
+        http.get(`${BASE_URL}/v1/deployments/deploy-no-wait`, () => {
+          statusPolls++;
+          return HttpResponse.json(
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-no-wait",
+              status: "pending",
+              live: false,
+            })
+          );
+        })
+      );
+
+      const result = await deployToMain(config, resources, { wait: false });
+
+      expect(result.success).toBe(true);
+      expect(result.buildId).toBe("deploy-no-wait");
+      // No polling should have happened.
+      expect(statusPolls).toBe(0);
     });
 
     it("passes allow_destructive_operations when explicitly enabled", async () => {
@@ -238,16 +329,13 @@ describe("Deploy API", () => {
             createDeploymentStatusResponse({
               deploymentId: "deploy-destructive",
               status: "data_ready",
+              live: true,
             })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-destructive/set-live`, () => {
-          return HttpResponse.json(createSetLiveSuccessResponse());
         })
       );
 
       await deployToMain(config, resources, {
-        pollIntervalMs: 1,
         allowDestructiveOperations: true,
       });
 
@@ -283,10 +371,7 @@ describe("Deploy API", () => {
         })
       );
 
-      await deployToMain(config, resources, {
-        pollIntervalMs: 1,
-        check: true,
-      });
+      await deployToMain(config, resources, { check: true });
 
       expect(listed).toBe(false);
       expect(deletedIds).toEqual([]);
@@ -316,12 +401,17 @@ describe("Deploy API", () => {
       );
       setupSuccessfulDeployFlow("deploy-cleanup");
 
-      await deployToMain(config, resources, { pollIntervalMs: 1 });
+      await deployToMain(config, resources);
 
-      expect(deletedIds).toEqual(["stale-1", "stale-2", "live-1"]);
+      // The previous live deployment is left alone — the server removes it
+      // as part of the auto-promotion once the new deployment is live.
+      expect(deletedIds).toEqual(["stale-1", "stale-2"]);
     });
 
-    it("deletes the previous live deployment after promoting the new deployment", async () => {
+    it("does not touch the previous live deployment client-side", async () => {
+      // With auto_promote=true the server flips the new deployment live AND
+      // deletes the previous live deployment on our behalf. The SDK should
+      // therefore never issue a set-live or a delete for a live deployment.
       const events: string[] = [];
 
       server.use(
@@ -342,12 +432,12 @@ describe("Deploy API", () => {
         }),
         http.get(`${BASE_URL}/v1/deployments/new-deploy`, () => {
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "new-deploy", status: "data_ready" })
+            createDeploymentStatusResponse({
+              deploymentId: "new-deploy",
+              status: "data_ready",
+              live: true,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/new-deploy/set-live`, () => {
-          events.push("set-live");
-          return HttpResponse.json(createSetLiveSuccessResponse());
         }),
         http.delete(`${BASE_URL}/v1/deployments/:id`, ({ params }) => {
           events.push(`delete:${params.id as string}`);
@@ -355,10 +445,10 @@ describe("Deploy API", () => {
         })
       );
 
-      const result = await deployToMain(config, resources, { pollIntervalMs: 1 });
+      const result = await deployToMain(config, resources);
 
       expect(result.success).toBe(true);
-      expect(events).toEqual(["create", "set-live", "delete:previous-live"]);
+      expect(events).toEqual(["create"]);
     });
 
     it("adds actionable guidance to Forward/Classic workspace errors", async () => {
@@ -384,47 +474,77 @@ describe("Deploy API", () => {
       );
     });
 
-    it("handles failed deployment status", async () => {
+    it("tolerates transient failed status while server auto-deletes", async () => {
+      // When the deployment hits `failed`, the SDK should not bail immediately
+      // — the server usually transitions it to `deleting`/`deleted` shortly
+      // after. We report the failure only when that transition happens.
+      let pollCount = 0;
       server.use(
         http.post(`${BASE_URL}/v1/deploy`, () => {
           return HttpResponse.json(
-            createDeploySuccessResponse({ deploymentId: "deploy-fail", status: "pending" })
+            createDeploySuccessResponse({ deploymentId: "deploy-transient-fail" })
           );
         }),
-        http.get(`${BASE_URL}/v1/deployments/deploy-fail`, () => {
-          return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-fail", status: "failed" })
-          );
+        http.get(`${BASE_URL}/v1/deployments/deploy-transient-fail`, () => {
+          pollCount++;
+          if (pollCount <= 2) {
+            return HttpResponse.json(
+              createDeploymentStatusResponse({
+                deploymentId: "deploy-transient-fail",
+                status: "failed",
+                live: false,
+              })
+            );
+          }
+          return HttpResponse.json({
+            result: "success",
+            deployment: {
+              id: "deploy-transient-fail",
+              status: "deleted",
+              live: false,
+              feedback: [
+                { resource: null, level: "ERROR", message: "schema conflict" },
+              ],
+            },
+          });
         })
       );
 
-      const result = await deployToMain(config, resources, { pollIntervalMs: 1 });
+      const result = await deployToMain(config, resources);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Deployment failed with status: failed");
+      expect(result.error).toContain("deleted automatically");
+      expect(result.error).toContain("schema conflict");
+      // 2 failed + 1 deleted.
+      expect(pollCount).toBe(3);
     });
 
-    it("handles set-live failure", async () => {
+    it("bails when the deployment is stuck in failed state", async () => {
+      let pollCount = 0;
       server.use(
         http.post(`${BASE_URL}/v1/deploy`, () => {
           return HttpResponse.json(
-            createDeploySuccessResponse({ deploymentId: "deploy-setlive-fail" })
+            createDeploySuccessResponse({ deploymentId: "deploy-stuck" })
           );
         }),
-        http.get(`${BASE_URL}/v1/deployments/deploy-setlive-fail`, () => {
+        http.get(`${BASE_URL}/v1/deployments/deploy-stuck`, () => {
+          pollCount++;
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-setlive-fail", status: "data_ready" })
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-stuck",
+              status: "failed",
+              live: false,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-setlive-fail/set-live`, () => {
-          return HttpResponse.json({ error: "Set live failed" }, { status: 500 });
         })
       );
 
-      const result = await deployToMain(config, resources, { pollIntervalMs: 1 });
+      const result = await deployToMain(config, resources);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Failed to set deployment as live");
+      expect(result.error).toContain("didn't start deleting automatically");
+      // One extra poll past the threshold trips the safety valve.
+      expect(pollCount).toBe(MAX_CONSECUTIVE_FAILED_POLLS + 1);
     });
 
     it("normalizes baseUrl with trailing slash", async () => {
@@ -439,46 +559,20 @@ describe("Deploy API", () => {
         }),
         http.get(`${BASE_URL}/v1/deployments/deploy-slash`, () => {
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-slash", status: "data_ready" })
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-slash",
+              status: "data_ready",
+              live: true,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-slash/set-live`, () => {
-          return HttpResponse.json(createSetLiveSuccessResponse());
         })
       );
 
-      await deployToMain(
-        { ...config, baseUrl: `${BASE_URL}/` },
-        resources,
-        { pollIntervalMs: 1 }
-      );
+      await deployToMain({ ...config, baseUrl: `${BASE_URL}/` }, resources);
 
       const parsed = new URL(capturedUrl ?? "");
       expect(parsed.pathname).toBe("/v1/deploy");
       expect(parsed.searchParams.get("from")).toBe("ts-sdk");
-    });
-
-    it("times out when deployment never becomes ready", async () => {
-      server.use(
-        http.post(`${BASE_URL}/v1/deploy`, () => {
-          return HttpResponse.json(
-            createDeploySuccessResponse({ deploymentId: "deploy-timeout", status: "pending" })
-          );
-        }),
-        http.get(`${BASE_URL}/v1/deployments/deploy-timeout`, () => {
-          return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-timeout", status: "pending" })
-          );
-        })
-      );
-
-      const result = await deployToMain(config, resources, {
-        pollIntervalMs: 1,
-        maxPollAttempts: 3,
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Deployment timed out");
     });
 
     it("includes connections in deploy form data", async () => {
@@ -503,17 +597,16 @@ describe("Deploy API", () => {
         }),
         http.get(`${BASE_URL}/v1/deployments/deploy-conn`, () => {
           return HttpResponse.json(
-            createDeploymentStatusResponse({ deploymentId: "deploy-conn", status: "data_ready" })
+            createDeploymentStatusResponse({
+              deploymentId: "deploy-conn",
+              status: "data_ready",
+              live: true,
+            })
           );
-        }),
-        http.post(`${BASE_URL}/v1/deployments/deploy-conn/set-live`, () => {
-          return HttpResponse.json(createSetLiveSuccessResponse());
         })
       );
 
-      const result = await deployToMain(config, resourcesWithConnections, {
-        pollIntervalMs: 1,
-      });
+      const result = await deployToMain(config, resourcesWithConnections);
 
       expect(result.success).toBe(true);
       expect(result.connectionCount).toBe(1);
