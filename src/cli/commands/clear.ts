@@ -149,8 +149,8 @@ async function clearCloudBranch(config: ResolvedConfig): Promise<ClearResult> {
 
     // Clear the branch (delete and recreate)
     const branchOptions: CreateBranchOptions | undefined =
-      config.devMode !== "local" && config.branchDataMode === "last_partition"
-        ? { branch_data_mode: "last_partition" }
+      config.devMode !== "local" && config.branchDataMode
+        ? { branch_data_mode: config.branchDataMode }
         : undefined;
 
     const newBranch = await clearBranch(

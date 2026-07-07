@@ -165,7 +165,7 @@ export async function createBranch(
   const fetchFn = getFetch(config);
   const url = new URL("/v1/environments", config.baseUrl);
   url.searchParams.set("name", name);
-  if (options?.branch_data_mode) {
+  if (options?.branch_data_mode && options.branch_data_mode !== "none") {
     url.searchParams.set("data", options.branch_data_mode);
   }
 

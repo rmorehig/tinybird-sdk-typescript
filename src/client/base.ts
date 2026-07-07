@@ -342,8 +342,8 @@ export class TinybirdClient {
 
       const branchName = config.tinybirdBranch;
       const branchOptions: CreateBranchOptions | undefined =
-        config.devMode !== "local" && config.branchDataMode === "last_partition"
-          ? { branch_data_mode: "last_partition" }
+        config.devMode !== "local" && config.branchDataMode
+          ? { branch_data_mode: config.branchDataMode }
           : undefined;
 
       // Get or create branch (always fetch fresh to avoid stale cache issues)

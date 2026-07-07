@@ -227,8 +227,8 @@ export async function runPreview(options: PreviewCommandOptions = {}): Promise<P
   try {
     const apiConfig = { baseUrl: config.baseUrl, token: config.token };
     const branchOptions: CreateBranchOptions | undefined =
-      config.branchDataMode === "last_partition"
-        ? { branch_data_mode: "last_partition" }
+      config.branchDataMode
+        ? { branch_data_mode: config.branchDataMode }
         : undefined;
 
     // Check if branch already exists and delete it for a fresh start

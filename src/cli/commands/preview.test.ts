@@ -120,6 +120,52 @@ describe("Preview command", () => {
       );
     });
 
+    it("creates cloud preview branch without data when branch_data_mode is none", async () => {
+      const { loadConfigAsync } = await import("../config.js");
+      const { buildFromInclude } = await import("../../generator/index.js");
+      const { getBranch, createBranch } = await import("../../api/branches.js");
+      const { deployToMain } = await import("../../api/deploy.js");
+
+      vi.mocked(loadConfigAsync).mockResolvedValue({
+        include: ["test.ts"],
+        token: "p.test-token",
+        baseUrl: "https://api.tinybird.co",
+        configPath: "/test/tinybird.config.json",
+        devMode: "branch",
+        cwd: "/test",
+        gitBranch: "feature-test",
+        tinybirdBranch: "feature_test",
+        isMainBranch: false,
+        branchDataMode: "none",
+      });
+      vi.mocked(buildFromInclude).mockResolvedValue({
+        resources: { datasources: [], pipes: [], connections: [] },
+        entities: { datasources: {}, pipes: {}, connections: {}, rawDatasources: [], rawPipes: [], sourceFiles: [] },
+        stats: { datasourceCount: 0, pipeCount: 0, connectionCount: 0 },
+      });
+      vi.mocked(getBranch).mockRejectedValue(new Error("not found"));
+      vi.mocked(createBranch).mockResolvedValue({
+        id: "b1",
+        name: "tmp_ci_feature_test",
+        token: "p.branch",
+        created_at: "2024-01-01T00:00:00Z",
+      });
+      vi.mocked(deployToMain).mockResolvedValue({
+        success: true,
+        result: "success",
+        datasourceCount: 0,
+        pipeCount: 0,
+        connectionCount: 0,
+      });
+
+      await runPreview();
+      expect(createBranch).toHaveBeenCalledWith(
+        expect.any(Object),
+        "tmp_ci_feature_test",
+        { branch_data_mode: "none" }
+      );
+    });
+
     it("ignores config branch_data_mode in local mode", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");

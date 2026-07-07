@@ -11,8 +11,8 @@
  * - "local": Use local Tinybird container at localhost:7181
  */
 export type DevMode = "branch" | "local";
-export type BranchDataMode = "last_partition";
-export const BRANCH_DATA_MODE_VALUES = ["last_partition"] as const satisfies readonly BranchDataMode[];
+export type BranchDataMode = "last_partition" | "none";
+export const BRANCH_DATA_MODE_VALUES = ["last_partition", "none"] as const satisfies readonly BranchDataMode[];
 
 /**
  * Tinybird configuration file structure

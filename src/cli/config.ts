@@ -17,7 +17,7 @@ export {
 import { BRANCH_DATA_MODE_VALUES } from "./config-types.js";
 import type { BranchDataMode, DevMode, TinybirdConfig } from "./config-types.js";
 
-const DEFAULT_BRANCH_DATA_MODE: BranchDataMode = "last_partition";
+const DEFAULT_BRANCH_DATA_MODE: BranchDataMode = "none";
 
 /**
  * Resolved configuration with all values expanded
