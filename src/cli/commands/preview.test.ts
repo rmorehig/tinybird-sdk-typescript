@@ -120,7 +120,7 @@ describe("Preview command", () => {
       );
     });
 
-    it("creates cloud preview branch without data when branch_data_mode is none", async () => {
+    it("creates cloud preview branch without data when branch_data_mode is not set", async () => {
       const { loadConfigAsync } = await import("../config.js");
       const { buildFromInclude } = await import("../../generator/index.js");
       const { getBranch, createBranch } = await import("../../api/branches.js");
@@ -136,7 +136,7 @@ describe("Preview command", () => {
         gitBranch: "feature-test",
         tinybirdBranch: "feature_test",
         isMainBranch: false,
-        branchDataMode: "none",
+        branchDataMode: null,
       });
       vi.mocked(buildFromInclude).mockResolvedValue({
         resources: { datasources: [], pipes: [], connections: [] },
@@ -162,7 +162,7 @@ describe("Preview command", () => {
       expect(createBranch).toHaveBeenCalledWith(
         expect.any(Object),
         "tmp_ci_feature_test",
-        { branch_data_mode: "none" }
+        undefined
       );
     });
 

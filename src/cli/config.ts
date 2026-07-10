@@ -17,7 +17,6 @@ export {
 import { BRANCH_DATA_MODE_VALUES } from "./config-types.js";
 import type { BranchDataMode, DevMode, TinybirdConfig } from "./config-types.js";
 
-const DEFAULT_BRANCH_DATA_MODE: BranchDataMode = "none";
 
 /**
  * Resolved configuration with all values expanded
@@ -41,7 +40,7 @@ export interface ResolvedConfig {
   isMainBranch: boolean;
   /** Development mode: "branch" or "local" */
   devMode: DevMode;
-  /** Branch data mode configured in tinybird.config.json */
+  /** Branch data mode configured in tinybird.config.json (null = create branches without data, the default) */
   branchDataMode?: BranchDataMode | null;
 }
 
@@ -212,10 +211,10 @@ function resolveBranchDataMode(raw: Record<string, unknown>): { mode: BranchData
   }
 
   const value = raw["branch_data_mode"];
-  if (value === undefined || value === null) return { mode: DEFAULT_BRANCH_DATA_MODE, explicit: false };
+  if (value === undefined || value === null) return { mode: null, explicit: false };
   if (typeof value !== "string") throw new Error("branch_data_mode must be a string.");
   const mode = value.trim().toLowerCase();
-  if (!mode) return { mode: DEFAULT_BRANCH_DATA_MODE, explicit: false };
+  if (!mode) return { mode: null, explicit: false };
   if (!BRANCH_DATA_MODE_VALUES.includes(mode as BranchDataMode)) {
     throw new Error(
       `Invalid branch_data_mode '${value}'. Allowed values are: ${BRANCH_DATA_MODE_VALUES.join(", ")}.`

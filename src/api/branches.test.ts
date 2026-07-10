@@ -223,7 +223,7 @@ describe("Branch API client", () => {
       expect(createParsed.searchParams.get("data")).toBe("last_partition");
     });
 
-    it("omits the data param when branch_data_mode is none", async () => {
+    it("omits the data param when no branch_data_mode is given", async () => {
       const mockBranch = {
         id: "branch-123",
         name: "my-feature",
@@ -247,9 +247,7 @@ describe("Branch API client", () => {
         json: () => Promise.resolve(mockBranch),
       });
 
-      await createBranch(config, "my-feature", {
-        branch_data_mode: "none",
-      });
+      await createBranch(config, "my-feature");
 
       const [createUrl] = mockFetch.mock.calls[0];
       const createParsed = expectFromParam(createUrl);

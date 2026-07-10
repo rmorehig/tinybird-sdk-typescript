@@ -343,7 +343,7 @@ describe("Config", () => {
       expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("resolves branch_data_mode as none", () => {
+    it("throws when branch_data_mode is none, pointing at omission", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -354,11 +354,12 @@ describe("Config", () => {
         JSON.stringify(config)
       );
 
-      const result = loadConfig(tempDir);
-      expect(result.branchDataMode).toBe("none");
+      expect(() => loadConfig(tempDir)).toThrow(
+        "Omit branch_data_mode to create branches without data"
+      );
     });
 
-    it("defaults branch_data_mode to none when missing", () => {
+    it("defaults branch_data_mode to no data when missing", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -369,10 +370,10 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataMode).toBe("none");
+      expect(result.branchDataMode).toBeNull();
     });
 
-    it("defaults empty branch_data_mode to none", () => {
+    it("defaults empty branch_data_mode to no data", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -384,7 +385,7 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataMode).toBe("none");
+      expect(result.branchDataMode).toBeNull();
     });
 
     it("throws when branch_data_mode is all_partitions", () => {

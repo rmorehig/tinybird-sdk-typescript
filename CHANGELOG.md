@@ -7,13 +7,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-### Added
-
-- `branch_data_mode: "none"` config option to create cloud branches without copying any production data.
-
 ### Changed
 
-- `branch_data_mode` now defaults to `"none"`: cloud branches are created empty unless `"last_partition"` is set explicitly. This restores the default behavior of `0.0.78` and earlier; only versions `0.0.79` through `0.0.81` copied the last partition of production data into branches by default. Set `branch_data_mode: "last_partition"` in your config to keep copying production data into branches.
+- Cloud branches are now created empty by default: when `branch_data_mode` is omitted from the config, no production data is copied into new branches. This restores the default behavior of `0.0.78` and earlier; only versions `0.0.79` through `0.0.81` copied the last partition of production data into branches by default. Set `branch_data_mode: "last_partition"` in your config to keep copying production data into branches. 
 
 ## [0.0.80] - 2026-06-24
 

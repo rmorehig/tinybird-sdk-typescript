@@ -525,7 +525,7 @@ export default {
 | `token` | `string` | *required* | API token. Supports `${ENV_VAR}` interpolation for environment variables |
 | `baseUrl` | `string` | `"https://api.tinybird.co"` | Tinybird API URL. Use `"https://api.us-east.tinybird.co"` for US region |
 | `devMode` | `"branch"` \| `"local"` | `"branch"` | Development mode. `"branch"` uses Tinybird cloud with branches, `"local"` uses local Docker container |
-| `branch_data_mode` | `"none"` \| `"last_partition"` | `"none"` | Data attached to cloud branches on creation. `"none"` creates empty branches; `"last_partition"` copies the last partition of production data |
+| `branch_data_mode` | `"last_partition"` | Data attached to cloud branches on creation. Omit to create empty branches; set `"last_partition"` to copy the last partition of production data |
 
 ### Local Development Mode
 
