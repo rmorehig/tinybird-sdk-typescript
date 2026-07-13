@@ -343,7 +343,7 @@ describe("Config", () => {
       expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("throws when branch_data_mode is none, pointing at omission", () => {
+    it("throws when branch_data_mode is none", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -355,7 +355,7 @@ describe("Config", () => {
       );
 
       expect(() => loadConfig(tempDir)).toThrow(
-        "Omit branch_data_mode to create branches without data"
+        "Invalid branch_data_mode 'none'. Allowed values are: last_partition."
       );
     });
 
