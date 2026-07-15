@@ -225,10 +225,9 @@ export async function runBuild(options: BuildCommandOptions = {}): Promise<Build
         console.log(`[debug] Getting/creating Tinybird branch: ${config.tinybirdBranch}`);
       }
       try {
-        const branchDataMode: BranchDataMode | undefined =
-          options.lastPartition || config.branchDataMode === "last_partition"
-            ? "last_partition"
-            : undefined;
+        const branchDataMode: BranchDataMode | undefined = options.lastPartition
+          ? "last_partition"
+          : config.branchDataMode ?? undefined;
         const branchOptions = branchDataMode
           ? { branch_data_mode: branchDataMode }
           : undefined;

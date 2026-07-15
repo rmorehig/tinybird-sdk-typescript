@@ -343,7 +343,23 @@ describe("Config", () => {
       expect(result.branchDataMode).toBe("last_partition");
     });
 
-    it("defaults branch_data_mode to last_partition when missing", () => {
+    it("throws when branch_data_mode is none", () => {
+      const config = {
+        include: ["lib/datasources.ts"],
+        token: "test-token",
+        branch_data_mode: "none",
+      };
+      fs.writeFileSync(
+        path.join(tempDir, "tinybird.json"),
+        JSON.stringify(config)
+      );
+
+      expect(() => loadConfig(tempDir)).toThrow(
+        "Invalid branch_data_mode 'none'. Allowed values are: last_partition."
+      );
+    });
+
+    it("defaults branch_data_mode to no data when missing", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -354,10 +370,10 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataMode).toBe("last_partition");
+      expect(result.branchDataMode).toBeNull();
     });
 
-    it("defaults empty branch_data_mode to last_partition", () => {
+    it("defaults empty branch_data_mode to no data", () => {
       const config = {
         include: ["lib/datasources.ts"],
         token: "test-token",
@@ -369,7 +385,7 @@ describe("Config", () => {
       );
 
       const result = loadConfig(tempDir);
-      expect(result.branchDataMode).toBe("last_partition");
+      expect(result.branchDataMode).toBeNull();
     });
 
     it("throws when branch_data_mode is all_partitions", () => {

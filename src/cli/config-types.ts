@@ -28,6 +28,9 @@ export interface TinybirdConfig {
   baseUrl?: string;
   /** Development mode: "branch" (default) or "local" */
   devMode?: DevMode;
-  /** Branch data mode applied on cloud branch creation (shared snake_case key) */
+  /**
+   * Branch data mode applied on cloud branch creation (shared snake_case key,
+   * also read by the tb CLI). Omit to create branches without data (default).
+   */
   branch_data_mode?: BranchDataMode;
 }

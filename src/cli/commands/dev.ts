@@ -240,10 +240,9 @@ export async function runDev(
     // Use tinybirdBranch (sanitized name) for Tinybird API, gitBranch for display
     if (config.tinybirdBranch) {
       const branchName = config.tinybirdBranch; // Sanitized name for Tinybird
-      const branchDataMode: BranchDataMode | undefined =
-        options.lastPartition || config.branchDataMode === "last_partition"
-          ? "last_partition"
-          : undefined;
+      const branchDataMode: BranchDataMode | undefined = options.lastPartition
+        ? "last_partition"
+        : config.branchDataMode ?? undefined;
       const branchOptions = branchDataMode
         ? { branch_data_mode: branchDataMode }
         : undefined;
