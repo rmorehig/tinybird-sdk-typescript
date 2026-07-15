@@ -1,6 +1,6 @@
 {
   "name": "@tinybirdco/sdk",
-  "version": "0.0.81",
+  "version": "0.0.82",
   "description": "TypeScript SDK for Tinybird Forward - define datasources and pipes as TypeScript",
   "type": "module",
   "main": "./dist/index.js",
