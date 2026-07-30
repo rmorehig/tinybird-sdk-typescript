@@ -215,6 +215,11 @@ function resolveBranchDataMode(raw: Record<string, unknown>): { mode: BranchData
   if (typeof value !== "string") throw new Error("branch_data_mode must be a string.");
   const mode = value.trim().toLowerCase();
   if (!mode) return { mode: null, explicit: false };
+  if (mode === "none") {
+    throw new Error(
+      "Invalid branch_data_mode 'none'. Omit branch_data_mode to create branches without data (the default)."
+    );
+  }
   if (!BRANCH_DATA_MODE_VALUES.includes(mode as BranchDataMode)) {
     throw new Error(
       `Invalid branch_data_mode '${value}'. Allowed values are: ${BRANCH_DATA_MODE_VALUES.join(", ")}.`
