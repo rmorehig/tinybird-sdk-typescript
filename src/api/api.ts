@@ -18,6 +18,26 @@ const DEFAULT_INGEST_RETRY_503_BASE_DELAY_MS = 200;
 const DEFAULT_INGEST_RETRY_503_MAX_DELAY_MS = 3000;
 
 /**
+ * Serialize a single query-param value for the Tinybird pipes API.
+ * Plain objects (e.g. p.json() params) become JSON strings; Dates are rejected;
+ * everything else uses String(value).
+ */
+function serializeQueryParamValue(key: string, value: unknown): string {
+  if (value instanceof Date) {
+    throw new Error(
+      `Date values are not supported for query parameter "${key}". ` +
+        "Pass a string in YYYY-MM-DD HH:MM:SS format (or YYYY-MM-DD HH:MM:SS.sss for DateTime64)."
+    );
+  }
+
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+/**
  * Public, decoupled Tinybird API wrapper configuration
  */
 export interface TinybirdApiConfig {
@@ -214,25 +234,12 @@ export class TinybirdApi {
 
       if (Array.isArray(value)) {
         for (const item of value) {
-          if (item instanceof Date) {
-            throw new Error(
-              `Date values are not supported for query parameter "${key}". ` +
-                "Pass a string in YYYY-MM-DD HH:MM:SS format (or YYYY-MM-DD HH:MM:SS.sss for DateTime64)."
-            );
-          }
-          url.searchParams.append(key, String(item));
+          url.searchParams.append(key, serializeQueryParamValue(key, item));
         }
         continue;
       }
 
-      if (value instanceof Date) {
-        throw new Error(
-          `Date values are not supported for query parameter "${key}". ` +
-            "Pass a string in YYYY-MM-DD HH:MM:SS format (or YYYY-MM-DD HH:MM:SS.sss for DateTime64)."
-        );
-      }
-
-      url.searchParams.set(key, String(value));
+      url.searchParams.set(key, serializeQueryParamValue(key, value));
     }
 
     const response = await this.request(url.toString(), {

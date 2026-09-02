@@ -142,6 +142,69 @@ describe("TinybirdApi", () => {
     ).rejects.toThrow("Date values are not supported for query parameter");
   });
 
+  it("JSON-stringifies plain object query params (p.json())", async () => {
+    let configOverridesParam: string | null = null;
+    let preStringifiedParam: string | null = null;
+    let objectArrayParams: string[] = [];
+    let limitParam: string | null = null;
+    let tagsParams: string[] = [];
+
+    server.use(
+      http.get(`${BASE_URL}/v0/pipes/json_echo.json`, ({ request }) => {
+        const url = new URL(request.url);
+        configOverridesParam = url.searchParams.get("configOverrides");
+        preStringifiedParam = url.searchParams.get("preStringified");
+        objectArrayParams = url.searchParams.getAll("items");
+        limitParam = url.searchParams.get("limit");
+        tagsParams = url.searchParams.getAll("tags");
+
+        return HttpResponse.json({
+          data: [{ key_count: 1 }],
+          meta: [{ name: "key_count", type: "UInt64" }],
+          rows: 1,
+          statistics: {
+            elapsed: 0.001,
+            rows_read: 1,
+            bytes_read: 10,
+          },
+        });
+      })
+    );
+
+    const api = createTinybirdApi({
+      baseUrl: BASE_URL,
+      token: "p.default-token",
+    });
+
+    await api.query("json_echo", {
+      configOverrides: { foo: 1 },
+      preStringified: '{"foo":1}',
+      items: [{ a: 1 }, { b: 2 }],
+      limit: 5,
+      tags: ["a", "b"],
+    });
+
+    expect(configOverridesParam).toBe('{"foo":1}');
+    expect(configOverridesParam).not.toBe("[object Object]");
+    expect(preStringifiedParam).toBe('{"foo":1}');
+    expect(objectArrayParams).toEqual(['{"a":1}', '{"b":2}']);
+    expect(limitParam).toBe("5");
+    expect(tagsParams).toEqual(["a", "b"]);
+  });
+
+  it("throws when array query params include Date values", async () => {
+    const api = createTinybirdApi({
+      baseUrl: BASE_URL,
+      token: "p.default-token",
+    });
+
+    await expect(
+      api.query("top_pages", {
+        tags: [new Date("2024-01-01T00:00:00.000Z")],
+      })
+    ).rejects.toThrow("Date values are not supported for query parameter");
+  });
+
   it("ingests rows via tinybirdApi.ingest", async () => {
     let datasourceName: string | null = null;
     let waitParam: string | null = null;

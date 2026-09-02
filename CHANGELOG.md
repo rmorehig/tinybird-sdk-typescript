@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.83] - 2026-07-20
+
+### Fixed
+
+- Query params that are plain objects (including `p.json()` values) are now JSON-serialized instead of becoming `"[object Object]"` via `String(value)`. Pre-stringified JSON strings and primitive params are unchanged.
+
 ## [0.0.82] - 2026-07-15
 
 ### Changed
