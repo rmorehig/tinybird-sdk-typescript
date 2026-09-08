@@ -86,15 +86,15 @@ export class BranchApiError extends Error {
  *
  * @param config - API configuration
  * @param jobId - Job ID to poll
- * @param maxAttempts - Maximum polling attempts (default: 120, i.e. 2 minutes)
- * @param intervalMs - Polling interval in milliseconds (default: 1000)
+ * @param maxAttempts - Maximum polling attempts (default: 60, i.e. 5 minutes)
+ * @param intervalMs - Polling interval in milliseconds (default: 5000)
  * @returns Job status when complete
  */
 async function pollJob(
   config: BranchApiConfig,
   jobId: string,
-  maxAttempts = 120,
-  intervalMs = 1000
+  maxAttempts = 60,
+  intervalMs = 5000
 ): Promise<JobStatusResponse> {
   const fetchFn = getFetch(config);
 
