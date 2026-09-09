@@ -63,7 +63,7 @@ interface JobResponse {
  */
 interface JobStatusResponse {
   id: string;
-  status: "waiting" | "working" | "done" | "error";
+  status: "waiting" | "working" | "done" | "error" | "cancelled";
   error?: string;
 }
 
@@ -131,12 +131,19 @@ async function pollJob(
       );
     }
 
-    // Wait before next poll
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    if (jobStatus.status === "cancelled") {
+      throw new BranchApiError(`Job '${jobId}' was cancelled`, 500, jobStatus);
+    }
+
+    // Wait before next poll, unless this was the last attempt
+    if (attempt < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
   }
 
+  const timeoutSeconds = (maxAttempts * intervalMs) / 1000;
   throw new BranchApiError(
-    `Job '${jobId}' timed out after ${maxAttempts} attempts`,
+    `Job '${jobId}' timed out after ${timeoutSeconds} seconds`,
     408
   );
 }
