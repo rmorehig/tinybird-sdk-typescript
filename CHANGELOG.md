@@ -29,6 +29,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - Deployment process now uses server-side auto-promotion: instead of polling and manually switching the deployment live or deleting the previous one, this is handled automatically. The `tb deploy` command now accepts `--wait` / `--no-wait` and `--auto` / `--no-auto` flags (both default to `true`), for consistent behavior with the CLI.
 
+### Added
+
+- S3 and GCS import data sources accept an optional `importFormat` (`csv`/`ndjson`/`parquet`), emitted as `IMPORT_FORMAT` in the generated `.datasource` and round-tripped by the datafile parser and migration emitter. Lets you ingest files whose extension does not imply the format (for example NDJSON delivered as `.log`), where the connector would otherwise fail with `Format not supported`.
+
 ## [0.0.80] - 2026-06-24
 
 ### Security

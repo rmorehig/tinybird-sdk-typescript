@@ -87,6 +87,8 @@ export interface S3Config {
   schedule?: string;
   /** Incremental import lower bound timestamp expression */
   fromTimestamp?: string;
+  /** Explicit import format (`csv`/`ndjson`/`parquet`) when the file extension does not imply it */
+  importFormat?: string;
 }
 
 /**
@@ -101,6 +103,8 @@ export interface GCSConfig {
   schedule?: string;
   /** Incremental import lower bound timestamp expression */
   fromTimestamp?: string;
+  /** Explicit import format (`csv`/`ndjson`/`parquet`) when the file extension does not imply it */
+  importFormat?: string;
 }
 
 /**

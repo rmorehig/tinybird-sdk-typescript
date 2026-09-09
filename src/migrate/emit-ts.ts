@@ -93,11 +93,13 @@ function hasSecretTemplate(resources: ParsedResource[]): boolean {
         values.push(resource.s3.bucketUri);
         if (resource.s3.schedule) values.push(resource.s3.schedule);
         if (resource.s3.fromTimestamp) values.push(resource.s3.fromTimestamp);
+        if (resource.s3.importFormat) values.push(resource.s3.importFormat);
       }
       if (resource.gcs) {
         values.push(resource.gcs.bucketUri);
         if (resource.gcs.schedule) values.push(resource.gcs.schedule);
         if (resource.gcs.fromTimestamp) values.push(resource.gcs.fromTimestamp);
+        if (resource.gcs.importFormat) values.push(resource.gcs.importFormat);
       }
       if (resource.dynamodb) {
         values.push(resource.dynamodb.tableArn);
@@ -379,6 +381,9 @@ function emitDatasource(ds: DatasourceModel): string {
     if (ds.s3.fromTimestamp) {
       lines.push(`    fromTimestamp: ${emitStringOrSecret(ds.s3.fromTimestamp)},`);
     }
+    if (ds.s3.importFormat) {
+      lines.push(`    importFormat: ${emitStringOrSecret(ds.s3.importFormat)},`);
+    }
     lines.push("  },");
   }
 
@@ -392,6 +397,9 @@ function emitDatasource(ds: DatasourceModel): string {
     }
     if (ds.gcs.fromTimestamp) {
       lines.push(`    fromTimestamp: ${emitStringOrSecret(ds.gcs.fromTimestamp)},`);
+    }
+    if (ds.gcs.importFormat) {
+      lines.push(`    importFormat: ${emitStringOrSecret(ds.gcs.importFormat)},`);
     }
     lines.push("  },");
   }

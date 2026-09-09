@@ -197,6 +197,10 @@ function generateImportConfig(importConfig: S3Config | GCSConfig): string {
     parts.push(`IMPORT_FROM_TIMESTAMP ${importConfig.fromTimestamp}`);
   }
 
+  if (importConfig.importFormat) {
+    parts.push(`IMPORT_FORMAT "${importConfig.importFormat}"`);
+  }
+
   return parts.join("\n");
 }
 

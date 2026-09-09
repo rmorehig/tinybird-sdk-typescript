@@ -598,6 +598,54 @@ describe('Datasource Generator', () => {
       expect(result.content).toContain('IMPORT_SCHEDULE @auto');
       expect(result.content).toContain('IMPORT_FROM_TIMESTAMP 2024-01-01T00:00:00Z');
     });
+
+    it('emits IMPORT_FORMAT when importFormat is set', () => {
+      const s3Conn = defineS3Connection('my_s3', {
+        region: 'us-east-1',
+        arn: 'arn:aws:iam::123456789012:role/tinybird-s3-access',
+      });
+
+      const ds = defineDatasource('s3_events', {
+        schema: {
+          timestamp: t.dateTime(),
+          event: t.string(),
+        },
+        engine: engine.mergeTree({ sortingKey: ['timestamp'] }),
+        s3: {
+          connection: s3Conn,
+          bucketUri: 's3://my-bucket/events/*.log',
+          importFormat: 'ndjson',
+        },
+      });
+
+      const result = generateDatasource(ds);
+
+      expect(result.content).toContain('IMPORT_BUCKET_URI s3://my-bucket/events/*.log');
+      expect(result.content).toContain('IMPORT_FORMAT "ndjson"');
+    });
+
+    it('omits IMPORT_FORMAT when importFormat is unset', () => {
+      const s3Conn = defineS3Connection('my_s3', {
+        region: 'us-east-1',
+        arn: 'arn:aws:iam::123456789012:role/tinybird-s3-access',
+      });
+
+      const ds = defineDatasource('s3_events', {
+        schema: {
+          timestamp: t.dateTime(),
+          event: t.string(),
+        },
+        engine: engine.mergeTree({ sortingKey: ['timestamp'] }),
+        s3: {
+          connection: s3Conn,
+          bucketUri: 's3://my-bucket/events/*.ndjson',
+        },
+      });
+
+      const result = generateDatasource(ds);
+
+      expect(result.content).not.toContain('IMPORT_FORMAT');
+    });
   });
 
   describe('GCS configuration', () => {
@@ -626,6 +674,29 @@ describe('Datasource Generator', () => {
       expect(result.content).toContain('IMPORT_BUCKET_URI gs://my-bucket/events/*.csv');
       expect(result.content).toContain('IMPORT_SCHEDULE @auto');
       expect(result.content).toContain('IMPORT_FROM_TIMESTAMP 2024-01-01T00:00:00Z');
+    });
+
+    it('emits IMPORT_FORMAT when importFormat is set', () => {
+      const gcsConn = defineGCSConnection('my_gcs', {
+        serviceAccountCredentialsJson: '{{ tb_secret("GCS_SERVICE_ACCOUNT_CREDENTIALS_JSON") }}',
+      });
+
+      const ds = defineDatasource('gcs_events', {
+        schema: {
+          timestamp: t.dateTime(),
+          event: t.string(),
+        },
+        engine: engine.mergeTree({ sortingKey: ['timestamp'] }),
+        gcs: {
+          connection: gcsConn,
+          bucketUri: 'gs://my-bucket/events/*.log',
+          importFormat: 'ndjson',
+        },
+      });
+
+      const result = generateDatasource(ds);
+
+      expect(result.content).toContain('IMPORT_FORMAT "ndjson"');
     });
   });
 

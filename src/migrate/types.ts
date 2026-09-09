@@ -50,6 +50,7 @@ export interface DatasourceS3Model {
   bucketUri: string;
   schedule?: string;
   fromTimestamp?: string;
+  importFormat?: string;
 }
 
 export interface DatasourceGCSModel {
@@ -57,6 +58,7 @@ export interface DatasourceGCSModel {
   bucketUri: string;
   schedule?: string;
   fromTimestamp?: string;
+  importFormat?: string;
 }
 
 export interface DatasourceDynamoDBModel {
